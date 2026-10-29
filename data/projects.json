@@ -1,0 +1,27 @@
+[
+  {
+    "id": "proj-alpharetta-firepit",
+    "title": "Alpharetta Stone Fire Pit, Bench & Artificial Turf",
+    "location": "Alpharetta, GA",
+    "specialty": "Fire Pits",
+    "description": "Backyard gathering space featuring a custom masonry fire pit, curved stone benches, interlocking concrete pavers patio, and artificial turf surround.",
+    "images": [
+      "/uploads/sample-firepit-patio.svg"
+    ],
+    "featured": true,
+    "createdAt": "2026-10-20T16:30:00.000Z"
+  },
+  {
+    "id": "proj-buckhead-pool",
+    "title": "Buckhead Custom Pool & Travertine Paver Retreat",
+    "location": "Buckhead, Atlanta, GA",
+    "specialty": "New Pools Construction",
+    "description": "Custom family swimming pool with raised spillover spa, stone retaining wall, drainage installation, and concrete paver patio decking.",
+    "images": [
+      "/uploads/sample-pool-oasis.svg",
+      "/uploads/1793295448721-g0ni0z-whatsapp-image-2026-10-28-at-16-45-39.jpeg"
+    ],
+    "featured": true,
+    "createdAt": "2026-10-15T14:00:00.000Z"
+  }
+]

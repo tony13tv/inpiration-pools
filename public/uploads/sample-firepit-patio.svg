@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" fill="none">
+  <defs>
+    <linearGradient id="night" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#090d16"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="fireGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#fde047"/>
+      <stop offset="50%" stop-color="#f97316"/>
+      <stop offset="100%" stop-color="#dc2626"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#night)"/>
+  <!-- Artificial Turf Surround -->
+  <rect x="0" y="310" width="800" height="190" fill="#065f46" opacity="0.45"/>
+  <!-- Concrete Paver Patio Circle -->
+  <ellipse cx="400" cy="390" rx="310" ry="75" fill="#475569" stroke="#64748b" stroke-width="3"/>
+  <!-- Curved Stone Bench -->
+  <path d="M170 365 Q 400 310, 630 365 L 610 395 Q 400 345, 190 395 Z" fill="#64748b" stroke="#94a3b8" stroke-width="2"/>
+  <!-- Stone Fire Pit -->
+  <ellipse cx="400" cy="385" rx="75" ry="30" fill="#334155" stroke="#94a3b8" stroke-width="3"/>
+  <path d="M370 380 C375 330, 395 320, 400 295 C410 320, 425 335, 430 380 Z" fill="url(#fireGlow)"/>
+  <text x="400" y="105" text-anchor="middle" fill="#fbbf24" font-family="system-ui, sans-serif" font-size="22" font-weight="800" letter-spacing="3">
+    STONE FIRE PIT, BENCH &amp; PAVER PATIO
+  </text>
+  <text x="400" y="135" text-anchor="middle" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="14" font-weight="600" letter-spacing="2">
+    ATL INSPIRATION POOLS &amp; CONSTRUCTION INC.
+  </text>
+</svg>

@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" fill="none">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0f172a"/>
+      <stop offset="100%" stop-color="#1e293b"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#06b6d4"/>
+      <stop offset="50%" stop-color="#0284c7"/>
+      <stop offset="100%" stop-color="#0369a1"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="500" fill="url(#sky)"/>
+  <circle cx="650" cy="95" r="42" fill="#f59e0b" opacity="0.8"/>
+  <!-- Stone Retaining Wall & Fire Features -->
+  <rect x="80" y="190" width="640" height="75" rx="6" fill="#334155" stroke="#475569" stroke-width="2"/>
+  <circle cx="220" cy="180" r="18" fill="#fb923c" opacity="0.85"/>
+  <circle cx="580" cy="180" r="18" fill="#fb923c" opacity="0.85"/>
+  <!-- Travertine Paver Deck -->
+  <polygon points="40,265 760,265 800,500 0,500" fill="#cbd5e1" opacity="0.18"/>
+  <!-- Custom Pool Basin -->
+  <polygon points="110,295 690,295 735,455 65,455" fill="url(#water)" stroke="#38bdf8" stroke-width="4"/>
+  <!-- Water Reflections -->
+  <path d="M180 350 Q 300 335, 420 350 T 640 350" stroke="#7dd3fc" stroke-width="3" opacity="0.6" fill="none"/>
+  <path d="M150 400 Q 320 385, 480 400 T 670 400" stroke="#bae6fd" stroke-width="2.5" opacity="0.5" fill="none"/>
+  <text x="400" y="105" text-anchor="middle" fill="#38bdf8" font-family="system-ui, sans-serif" font-size="22" font-weight="800" letter-spacing="3">
+    CUSTOM GUNITE POOL &amp; PAVER PATIO
+  </text>
+  <text x="400" y="135" text-anchor="middle" fill="#94a3b8" font-family="system-ui, sans-serif" font-size="14" font-weight="600" letter-spacing="2">
+    ATL INSPIRATION POOLS &amp; CONSTRUCTION INC.
+  </text>
+</svg>

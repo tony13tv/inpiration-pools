@@ -1,0 +1,128 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 340" fill="none">
+  <defs>
+    <linearGradient id="poolCyan" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="50%" stop-color="#06b6d4" />
+      <stop offset="100%" stop-color="#0284c7" />
+    </linearGradient>
+    <linearGradient id="deepWave" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#0369a1" />
+      <stop offset="50%" stop-color="#0ea5e9" />
+      <stop offset="100%" stop-color="#22d3ee" />
+    </linearGradient>
+    <linearGradient id="sunGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fde047" />
+      <stop offset="100%" stop-color="#f59e0b" />
+    </linearGradient>
+    <linearGradient id="swimmerSkin" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fdba74" />
+      <stop offset="100%" stop-color="#ea580c" />
+    </linearGradient>
+    <path id="topArc" d="M 62,155 A 210,125 0 0,1 458,155" />
+    <filter id="softGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="2" stdDeviation="3" flood-color="#0ea5e9" flood-opacity="0.35" />
+    </filter>
+  </defs>
+
+  <!-- Sun in top-right -->
+  <g transform="translate(382, 56)" filter="url(#softGlow)">
+    <circle cx="0" cy="0" r="14" fill="url(#sunGold)" />
+    <g stroke="url(#sunGold)" stroke-width="3" stroke-linecap="round">
+      <line x1="0" y1="-20" x2="0" y2="-27" />
+      <line x1="0" y1="20" x2="0" y2="27" />
+      <line x1="-20" y1="0" x2="-27" y2="0" />
+      <line x1="20" y1="0" x2="27" y2="0" />
+      <line x1="14" y1="-14" x2="19" y2="-19" />
+      <line x1="-14" y1="14" x2="-19" y2="19" />
+      <line x1="-14" y1="-14" x2="-19" y2="-19" />
+      <line x1="14" y1="14" x2="19" y2="19" />
+    </g>
+  </g>
+
+  <!-- Arched Title: ATL INSPIRATION POOLS -->
+  <text
+    fill="url(#poolCyan)"
+    font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+    font-size="25"
+    font-weight="900"
+    letter-spacing="3.5"
+    filter="url(#softGlow)"
+  >
+    <textPath href="#topArc" startOffset="50%" text-anchor="middle">
+      ATL INSPIRATION POOLS
+    </textPath>
+  </text>
+
+  <!-- Dynamic Water Splash Crown Behind Swimmer -->
+  <path
+    d="M175 180 C165 148, 190 120, 210 145 C218 115, 248 112, 255 142 C275 118, 305 125, 295 156 C318 145, 338 160, 322 180 Z"
+    fill="url(#poolCyan)"
+    opacity="0.85"
+  />
+  <!-- Water Droplets -->
+  <circle cx="170" cy="132" r="4.5" fill="#38bdf8" />
+  <circle cx="232" cy="106" r="5" fill="#22d3ee" />
+  <circle cx="308" cy="118" r="4.5" fill="#38bdf8" />
+  <circle cx="342" cy="144" r="3.5" fill="#7dd3fc" />
+
+  <!-- Swimmer Figure (Freestyle Stroke) -->
+  <g>
+    <!-- Raised Reaching Arm & Back Shoulder -->
+    <path
+      d="M210 176 C235 162, 265 142, 292 126 C305 134, 326 154, 336 168 L318 173 C308 161, 296 150, 288 145 C268 158, 250 170, 232 180 Z"
+      fill="url(#swimmerSkin)"
+    />
+    <!-- Swimmer Head & Swim Cap / Goggles -->
+    <circle cx="296" cy="170" r="15" fill="url(#swimmerSkin)" />
+    <path
+      d="M282 167 C284 154, 306 153, 311 166 C302 162, 290 162, 282 167 Z"
+      fill="#0284c7"
+    />
+    <ellipse cx="304" cy="170" rx="5.5" ry="3.2" fill="#0f172a" stroke="#e0f2fe" stroke-width="1.5" />
+  </g>
+
+  <!-- Layered Pool Waves -->
+  <path
+    d="M120 186 C165 168, 215 198, 265 182 C315 166, 360 194, 400 180 C375 204, 320 208, 260 202 C200 196, 155 206, 120 186 Z"
+    fill="url(#deepWave)"
+  />
+  <path
+    d="M145 204 C195 190, 245 214, 295 198 C340 185, 372 204, 385 198 C355 218, 300 222, 250 216 C200 210, 168 218, 145 204 Z"
+    fill="#38bdf8"
+  />
+  <path
+    d="M180 220 C225 212, 275 226, 335 214 C305 230, 235 232, 180 220 Z"
+    fill="#7dd3fc"
+    opacity="0.85"
+  />
+
+  <!-- Bottom Typography: & CONSTRUCTION INC. -->
+  <text
+    x="260"
+    y="268"
+    text-anchor="middle"
+    fill="url(#poolCyan)"
+    font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+    font-size="22"
+    font-weight="900"
+    letter-spacing="3"
+  >
+    &amp; CONSTRUCTION INC.
+  </text>
+
+  <!-- Decorative Accent Lines + "A FAMILY COMPANY" -->
+  <line x1="125" y1="291" x2="168" y2="291" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" opacity="0.7" />
+  <text
+    x="260"
+    y="296"
+    text-anchor="middle"
+    fill="#7dd3fc"
+    font-family="system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif"
+    font-size="13"
+    font-weight="800"
+    letter-spacing="2.5"
+  >
+    “A FAMILY COMPANY”
+  </text>
+  <line x1="352" y1="291" x2="395" y2="291" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" opacity="0.7" />
+</svg>

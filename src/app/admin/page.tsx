@@ -12,6 +12,22 @@ import {
 
 const DEFAULT_CATEGORIES = Object.keys(SERVICE_CATEGORY_META);
 
+function reorderArray<T>(list: T[], fromIndex: number, toIndex: number): T[] {
+  if (
+    fromIndex === toIndex ||
+    fromIndex < 0 ||
+    toIndex < 0 ||
+    fromIndex >= list.length ||
+    toIndex >= list.length
+  ) {
+    return list;
+  }
+  const clone = [...list];
+  const [moved] = clone.splice(fromIndex, 1);
+  clone.splice(toIndex, 0, moved);
+  return clone;
+}
+
 export default function AdminProjectsPage() {
   // Authentication state
   const [authChecking, setAuthChecking] = useState(true);
@@ -49,6 +65,24 @@ export default function AdminProjectsPage() {
     text: string;
   } | null>(null);
 
+  // Drag state for Create Project Photo Previews
+  const [dragCreatePhotoIdx, setDragCreatePhotoIdx] = useState<number | null>(
+    null
+  );
+  const [dragOverCreatePhotoIdx, setDragOverCreatePhotoIdx] = useState<
+    number | null
+  >(null);
+
+  // Drag state for Published Project Photo Strips (View mode)
+  const [dragProjectPhoto, setDragProjectPhoto] = useState<{
+    projectId: string;
+    index: number;
+  } | null>(null);
+  const [dragOverProjectPhoto, setDragOverProjectPhoto] = useState<{
+    projectId: string;
+    index: number;
+  } | null>(null);
+
   // Editing existing project state
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
@@ -60,11 +94,16 @@ export default function AdminProjectsPage() {
   const [editNewFiles, setEditNewFiles] = useState<File[]>([]);
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // Drag state for Edit Project Kept Photos
+  const [dragEditPhotoIdx, setDragEditPhotoIdx] = useState<number | null>(null);
+  const [dragOverEditPhotoIdx, setDragOverEditPhotoIdx] = useState<
+    number | null
+  >(null);
+
   // Create Service form state
   const [srvTitle, setSrvTitle] = useState("");
   const [srvCategory, setSrvCategory] = useState(DEFAULT_CATEGORIES[0]);
   const [srvDescription, setSrvDescription] = useState("");
-  const [srvOrder, setSrvOrder] = useState<number>(18);
   const [submittingService, setSubmittingService] = useState(false);
 
   // Editing existing service state
@@ -72,8 +111,14 @@ export default function AdminProjectsPage() {
   const [editSrvTitle, setEditSrvTitle] = useState("");
   const [editSrvCategory, setEditSrvCategory] = useState("");
   const [editSrvDescription, setEditSrvDescription] = useState("");
-  const [editSrvOrder, setEditSrvOrder] = useState<number>(1);
   const [savingServiceEdit, setSavingServiceEdit] = useState(false);
+
+  // Drag state for Services & Specialties
+  const [dragServiceIdx, setDragServiceIdx] = useState<number | null>(null);
+  const [dragOverServiceIdx, setDragOverServiceIdx] = useState<number | null>(
+    null
+  );
+  const [savingServiceOrder, setSavingServiceOrder] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -112,7 +157,6 @@ export default function AdminProjectsPage() {
         const srvData = await srvRes.json();
         if (Array.isArray(srvData.services) && srvData.services.length > 0) {
           setServices(srvData.services);
-          setSrvOrder(srvData.services.length + 1);
           setSpecialty((prev) => prev || srvData.services[0].title);
         }
       }
@@ -186,6 +230,87 @@ export default function AdminProjectsPage() {
 
   function removeSelectedFile(idx: number) {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== idx));
+  }
+
+  function handleDropCreatePhoto(targetIdx: number) {
+    if (dragCreatePhotoIdx === null || dragCreatePhotoIdx === targetIdx) {
+      setDragCreatePhotoIdx(null);
+      setDragOverCreatePhotoIdx(null);
+      return;
+    }
+    setSelectedFiles((prev) =>
+      reorderArray(prev, dragCreatePhotoIdx, targetIdx)
+    );
+    setDragCreatePhotoIdx(null);
+    setDragOverCreatePhotoIdx(null);
+  }
+
+  function handleDropEditPhoto(targetIdx: number) {
+    if (dragEditPhotoIdx === null || dragEditPhotoIdx === targetIdx) {
+      setDragEditPhotoIdx(null);
+      setDragOverEditPhotoIdx(null);
+      return;
+    }
+    setEditKeptImages((prev) =>
+      reorderArray(prev, dragEditPhotoIdx, targetIdx)
+    );
+    setDragEditPhotoIdx(null);
+    setDragOverEditPhotoIdx(null);
+  }
+
+  async function handleDropPublishedProjectPhoto(
+    project: ProjectItem,
+    targetIdx: number
+  ) {
+    if (
+      !dragProjectPhoto ||
+      dragProjectPhoto.projectId !== project.id ||
+      dragProjectPhoto.index === targetIdx
+    ) {
+      setDragProjectPhoto(null);
+      setDragOverProjectPhoto(null);
+      return;
+    }
+
+    const fromIdx = dragProjectPhoto.index;
+    const reorderedImages = reorderArray(project.images, fromIdx, targetIdx);
+
+    setDragProjectPhoto(null);
+    setDragOverProjectPhoto(null);
+
+    // Optimistic UI update
+    setProjects((prev) =>
+      prev.map((p) =>
+        p.id === project.id ? { ...p, images: reorderedImages } : p
+      )
+    );
+
+    try {
+      const res = await fetch(`/api/projects/${project.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ images: reorderedImages }),
+      });
+
+      if (res.status === 401) {
+        setAuthenticated(false);
+        return;
+      }
+
+      if (res.ok) {
+        const data = await res.json();
+        setProjects(data.projects);
+        setStatusMessage({
+          type: "success",
+          text: `Saved new photo order for "${project.title}".`,
+        });
+      }
+    } catch {
+      setStatusMessage({
+        type: "error",
+        text: "Failed to save photo order.",
+      });
+    }
   }
 
   // --- PROJECT HANDLERS ---
@@ -344,6 +469,57 @@ export default function AdminProjectsPage() {
   }
 
   // --- SERVICE / SPECIALTY HANDLERS ---
+  async function handleDropService(targetIdx: number) {
+    if (dragServiceIdx === null || dragServiceIdx === targetIdx) {
+      setDragServiceIdx(null);
+      setDragOverServiceIdx(null);
+      return;
+    }
+
+    const reordered = reorderArray(services, dragServiceIdx, targetIdx).map(
+      (item, idx) => ({
+        ...item,
+        displayOrder: idx + 1,
+      })
+    );
+
+    setDragServiceIdx(null);
+    setDragOverServiceIdx(null);
+    setServices(reordered);
+    setSavingServiceOrder(true);
+
+    try {
+      const res = await fetch("/api/services", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderedIds: reordered.map((s) => s.id),
+        }),
+      });
+
+      if (res.status === 401) {
+        setAuthenticated(false);
+        return;
+      }
+
+      if (res.ok) {
+        const data = await res.json();
+        setServices(data.services);
+        setStatusMessage({
+          type: "success",
+          text: "Display order updated and saved to Supabase!",
+        });
+      }
+    } catch {
+      setStatusMessage({
+        type: "error",
+        text: "Failed to save new specialty order.",
+      });
+    } finally {
+      setSavingServiceOrder(false);
+    }
+  }
+
   async function handleCreateService(e: React.FormEvent) {
     e.preventDefault();
     if (!srvTitle.trim()) {
@@ -365,7 +541,7 @@ export default function AdminProjectsPage() {
           title: srvTitle.trim(),
           category: srvCategory,
           description: srvDescription.trim(),
-          displayOrder: Number(srvOrder) || services.length + 1,
+          displayOrder: services.length + 1,
         }),
       });
 
@@ -382,7 +558,6 @@ export default function AdminProjectsPage() {
       setServices(data.services);
       setSrvTitle("");
       setSrvDescription("");
-      setSrvOrder(data.services.length + 1);
 
       setStatusMessage({
         type: "success",
@@ -404,23 +579,25 @@ export default function AdminProjectsPage() {
     setEditSrvTitle(srv.title);
     setEditSrvCategory(srv.category);
     setEditSrvDescription(srv.description);
-    setEditSrvOrder(srv.displayOrder);
   }
 
-  async function handleSaveServiceEdit(e: React.FormEvent, id: string) {
+  async function handleSaveServiceEdit(
+    e: React.FormEvent,
+    srv: ServiceItem
+  ) {
     e.preventDefault();
     setSavingServiceEdit(true);
     setStatusMessage(null);
 
     try {
-      const res = await fetch(`/api/services/${id}`, {
+      const res = await fetch(`/api/services/${srv.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: editSrvTitle.trim(),
           category: editSrvCategory.trim(),
           description: editSrvDescription.trim(),
-          displayOrder: Number(editSrvOrder) || 1,
+          displayOrder: srv.displayOrder,
         }),
       });
 
@@ -707,7 +884,8 @@ export default function AdminProjectsPage() {
                   Add New Project &amp; Upload Photos
                 </h2>
                 <p className="mt-1 text-xs text-slate-400">
-                  Upload one or more photos from your computer or phone.
+                  Upload one or more photos and drag thumbnails to set the cover
+                  image order.
                 </p>
 
                 <div className="mt-6 space-y-5">
@@ -817,34 +995,65 @@ export default function AdminProjectsPage() {
                       </label>
                     </div>
 
-                    {/* Selected Image Previews */}
+                    {/* Selected Image Previews with Drag-and-Drop Reordering */}
                     {previewUrls.length > 0 && (
                       <div className="mt-4">
-                        <p className="text-xs font-semibold text-cyan-300">
-                          Ready to upload ({previewUrls.length} photo
-                          {previewUrls.length === 1 ? "" : "s"}):
-                        </p>
+                        <div className="flex items-center justify-between">
+                          <p className="text-xs font-semibold text-cyan-300">
+                            Ready to upload ({previewUrls.length} photo
+                            {previewUrls.length === 1 ? "" : "s"}):
+                          </p>
+                          <span className="text-[11px] text-slate-400">
+                            ⇅ Drag photos to reorder
+                          </span>
+                        </div>
                         <div className="mt-2 grid grid-cols-3 gap-2.5">
-                          {previewUrls.map((url, idx) => (
-                            <div
-                              key={url}
-                              className="group relative aspect-video overflow-hidden rounded-xl border border-white/15 bg-slate-950"
-                            >
-                              {/* eslint-disable-next-line @next/next/no-img-element */}
-                              <img
-                                src={url}
-                                alt={`Upload preview ${idx + 1}`}
-                                className="h-full w-full object-cover"
-                              />
-                              <button
-                                type="button"
-                                onClick={() => removeSelectedFile(idx)}
-                                className="absolute top-1 right-1 rounded-full bg-slate-950/85 px-2 py-0.5 text-[10px] font-bold text-rose-300 hover:bg-rose-500 hover:text-white"
+                          {previewUrls.map((url, idx) => {
+                            const isDragged = dragCreatePhotoIdx === idx;
+                            const isDragOver = dragOverCreatePhotoIdx === idx;
+
+                            return (
+                              <div
+                                key={`${url}-${idx}`}
+                                draggable
+                                onDragStart={() => setDragCreatePhotoIdx(idx)}
+                                onDragOver={(e) => {
+                                  e.preventDefault();
+                                  setDragOverCreatePhotoIdx(idx);
+                                }}
+                                onDragEnd={() => {
+                                  setDragCreatePhotoIdx(null);
+                                  setDragOverCreatePhotoIdx(null);
+                                }}
+                                onDrop={(e) => {
+                                  e.preventDefault();
+                                  handleDropCreatePhoto(idx);
+                                }}
+                                className={`group relative aspect-video cursor-grab overflow-hidden rounded-xl border bg-slate-950 transition active:cursor-grabbing ${
+                                  isDragOver
+                                    ? "scale-105 border-2 border-cyan-400 ring-2 ring-cyan-400/40"
+                                    : "border-white/15"
+                                } ${isDragged ? "opacity-40" : "opacity-100"}`}
                               >
-                                ✕
-                              </button>
-                            </div>
-                          ))}
+                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                <img
+                                  src={url}
+                                  alt={`Upload preview ${idx + 1}`}
+                                  className="pointer-events-none h-full w-full object-cover"
+                                />
+                                <span className="absolute bottom-1 left-1 rounded bg-slate-950/85 px-1.5 py-0.5 font-mono text-[10px] font-bold text-cyan-300">
+                                  {idx === 0 ? "Cover #1" : `#${idx + 1}`}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => removeSelectedFile(idx)}
+                                  className="absolute top-1 right-1 rounded-full bg-slate-950/85 px-2 py-0.5 text-[10px] font-bold text-rose-300 hover:bg-rose-500 hover:text-white"
+                                >
+                                  ✕
+                                </button>
+                              </div>
+                            );
+                          })}
                         </div>
                       </div>
                     )}
@@ -881,8 +1090,8 @@ export default function AdminProjectsPage() {
                 Published Projects ({projects.length})
               </h2>
               <p className="mt-1 text-xs text-slate-400">
-                Edit details, upload additional photos to existing projects, or
-                remove outdated entries.
+                Drag and drop photos directly on any project card (or inside Edit
+                mode) to change their display order. Photo #1 is the cover image.
               </p>
 
               {loading ? (
@@ -1005,36 +1214,74 @@ export default function AdminProjectsPage() {
                               />
                             </div>
 
-                            {/* Current Images Management */}
+                            {/* Current Images Management with Drag and Drop */}
                             <div>
-                              <label className="block text-[11px] font-bold text-slate-300 uppercase">
-                                Current Photos ({editKeptImages.length})
-                              </label>
-                              <div className="mt-2 flex flex-wrap gap-2.5">
-                                {editKeptImages.map((imgUrl, idx) => (
-                                  <div
-                                    key={`${imgUrl}-${idx}`}
-                                    className="relative h-16 w-24 overflow-hidden rounded-lg border border-white/15"
-                                  >
-                                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                                    <img
-                                      src={imgUrl}
-                                      alt="Project photo"
-                                      className="h-full w-full object-cover"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setEditKeptImages((prev) =>
-                                          prev.filter((_, i) => i !== idx)
-                                        )
+                              <div className="flex items-center justify-between">
+                                <label className="block text-[11px] font-bold text-slate-300 uppercase">
+                                  Current Photos ({editKeptImages.length})
+                                </label>
+                                <span className="text-[11px] text-cyan-300">
+                                  ⇅ Drag photos to reorder
+                                </span>
+                              </div>
+                              <div className="mt-2 flex flex-wrap gap-3">
+                                {editKeptImages.map((imgUrl, idx) => {
+                                  const isDragged = dragEditPhotoIdx === idx;
+                                  const isDragOver =
+                                    dragOverEditPhotoIdx === idx;
+
+                                  return (
+                                    <div
+                                      key={`${imgUrl}-${idx}`}
+                                      draggable
+                                      onDragStart={() =>
+                                        setDragEditPhotoIdx(idx)
                                       }
-                                      className="absolute top-0.5 right-0.5 rounded bg-slate-950/90 px-1.5 py-0.5 text-[10px] font-bold text-rose-300 hover:bg-rose-600 hover:text-white"
+                                      onDragOver={(e) => {
+                                        e.preventDefault();
+                                        setDragOverEditPhotoIdx(idx);
+                                      }}
+                                      onDragEnd={() => {
+                                        setDragEditPhotoIdx(null);
+                                        setDragOverEditPhotoIdx(null);
+                                      }}
+                                      onDrop={(e) => {
+                                        e.preventDefault();
+                                        handleDropEditPhoto(idx);
+                                      }}
+                                      className={`relative h-20 w-28 cursor-grab overflow-hidden rounded-xl border transition active:cursor-grabbing ${
+                                        isDragOver
+                                          ? "scale-105 border-2 border-cyan-400 ring-2 ring-cyan-400/40"
+                                          : "border-white/15"
+                                      } ${
+                                        isDragged ? "opacity-40" : "opacity-100"
+                                      }`}
                                     >
-                                      ✕
-                                    </button>
-                                  </div>
-                                ))}
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={imgUrl}
+                                        alt="Project photo"
+                                        className="pointer-events-none h-full w-full object-cover"
+                                      />
+                                      <span className="absolute bottom-1 left-1 rounded bg-slate-950/85 px-1.5 py-0.5 font-mono text-[10px] font-bold text-cyan-300">
+                                        {idx === 0
+                                          ? "Cover #1"
+                                          : `#${idx + 1}`}
+                                      </span>
+                                      <button
+                                        type="button"
+                                        onClick={() =>
+                                          setEditKeptImages((prev) =>
+                                            prev.filter((_, i) => i !== idx)
+                                          )
+                                        }
+                                        className="absolute top-1 right-1 rounded bg-slate-950/90 px-1.5 py-0.5 text-[10px] font-bold text-rose-300 hover:bg-rose-600 hover:text-white"
+                                      >
+                                        ✕
+                                      </button>
+                                    </div>
+                                  );
+                                })}
                               </div>
                             </div>
 
@@ -1121,24 +1368,79 @@ export default function AdminProjectsPage() {
                               </div>
                             </div>
 
-                            {/* Image Gallery Strip */}
-                            <div className="mt-5 flex gap-3 overflow-x-auto pb-1">
-                              {project.images.map((imgUrl, idx) => (
-                                <div
-                                  key={`${project.id}-img-${idx}`}
-                                  className="relative h-24 w-36 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-slate-950"
-                                >
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
-                                    src={imgUrl}
-                                    alt={`${project.title} photo ${idx + 1}`}
-                                    className="h-full w-full object-cover"
-                                  />
-                                  <span className="absolute bottom-1 left-1 rounded bg-slate-950/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-300">
-                                    #{idx + 1}
-                                  </span>
-                                </div>
-                              ))}
+                            {/* Image Gallery Strip (Draggable to reorder directly) */}
+                            <div className="mt-5">
+                              {project.images.length > 1 && (
+                                <p className="mb-2 text-[11px] font-medium text-cyan-300/90">
+                                  ⇅ Drag photos left or right to reorder
+                                </p>
+                              )}
+                              <div className="flex gap-3 overflow-x-auto pb-1">
+                                {project.images.map((imgUrl, idx) => {
+                                  const isDragged =
+                                    dragProjectPhoto?.projectId ===
+                                      project.id &&
+                                    dragProjectPhoto.index === idx;
+                                  const isDragOver =
+                                    dragOverProjectPhoto?.projectId ===
+                                      project.id &&
+                                    dragOverProjectPhoto.index === idx;
+
+                                  return (
+                                    <div
+                                      key={`${project.id}-img-${idx}`}
+                                      draggable={project.images.length > 1}
+                                      onDragStart={() =>
+                                        setDragProjectPhoto({
+                                          projectId: project.id,
+                                          index: idx,
+                                        })
+                                      }
+                                      onDragOver={(e) => {
+                                        e.preventDefault();
+                                        setDragOverProjectPhoto({
+                                          projectId: project.id,
+                                          index: idx,
+                                        });
+                                      }}
+                                      onDragEnd={() => {
+                                        setDragProjectPhoto(null);
+                                        setDragOverProjectPhoto(null);
+                                      }}
+                                      onDrop={(e) => {
+                                        e.preventDefault();
+                                        handleDropPublishedProjectPhoto(
+                                          project,
+                                          idx
+                                        );
+                                      }}
+                                      className={`relative h-24 w-36 shrink-0 overflow-hidden rounded-xl border bg-slate-950 transition ${
+                                        project.images.length > 1
+                                          ? "cursor-grab active:cursor-grabbing"
+                                          : ""
+                                      } ${
+                                        isDragOver
+                                          ? "scale-105 border-2 border-cyan-400 ring-2 ring-cyan-400/40"
+                                          : "border-white/10"
+                                      } ${
+                                        isDragged ? "opacity-40" : "opacity-100"
+                                      }`}
+                                    >
+                                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                                      <img
+                                        src={imgUrl}
+                                        alt={`${project.title} photo ${idx + 1}`}
+                                        className="pointer-events-none h-full w-full object-cover"
+                                      />
+                                      <span className="absolute bottom-1 left-1 rounded bg-slate-950/85 px-1.5 py-0.5 font-mono text-[10px] font-bold text-cyan-300">
+                                        {idx === 0
+                                          ? "Cover #1"
+                                          : `#${idx + 1}`}
+                                      </span>
+                                    </div>
+                                  );
+                                })}
+                              </div>
                             </div>
                           </div>
                         )}
@@ -1163,7 +1465,7 @@ export default function AdminProjectsPage() {
                 </h2>
                 <p className="mt-1 text-xs text-slate-400">
                   Add a new service to the public checklist, category cards, and
-                  consultation form.
+                  consultation form. Drag items on the right to reorder.
                 </p>
 
                 <div className="mt-6 space-y-5">
@@ -1185,44 +1487,25 @@ export default function AdminProjectsPage() {
                     />
                   </div>
 
-                  <div className="grid gap-4 sm:grid-cols-3">
-                    <div className="sm:col-span-2">
-                      <label
-                        htmlFor="srv-category"
-                        className="block text-xs font-bold tracking-wider text-slate-300 uppercase"
-                      >
-                        Category Group
-                      </label>
-                      <select
-                        id="srv-category"
-                        value={srvCategory}
-                        onChange={(e) => setSrvCategory(e.target.value)}
-                        className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
-                      >
-                        {DEFAULT_CATEGORIES.map((cat) => (
-                          <option key={cat} value={cat}>
-                            {cat}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label
-                        htmlFor="srv-order"
-                        className="block text-xs font-bold tracking-wider text-slate-300 uppercase"
-                      >
-                        Display Order
-                      </label>
-                      <input
-                        id="srv-order"
-                        type="number"
-                        min={1}
-                        value={srvOrder}
-                        onChange={(e) => setSrvOrder(Number(e.target.value))}
-                        className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
-                      />
-                    </div>
+                  <div>
+                    <label
+                      htmlFor="srv-category"
+                      className="block text-xs font-bold tracking-wider text-slate-300 uppercase"
+                    >
+                      Category Group
+                    </label>
+                    <select
+                      id="srv-category"
+                      value={srvCategory}
+                      onChange={(e) => setSrvCategory(e.target.value)}
+                      className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                    >
+                      {DEFAULT_CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>
+                          {cat}
+                        </option>
+                      ))}
+                    </select>
                   </div>
 
                   <div>
@@ -1255,28 +1538,67 @@ export default function AdminProjectsPage() {
               </form>
             </div>
 
-            {/* Right Column: Existing Services & Specialties List */}
+            {/* Right Column: Existing Services & Specialties List (Drag & Drop) */}
             <div className="lg:col-span-7">
-              <h2 className="text-xl font-bold text-white">
-                Services &amp; Specialties ({services.length})
-              </h2>
-              <p className="mt-1 text-xs text-slate-400">
-                Manage the order, category, title, and description of every
-                specialty displayed on the website.
-              </p>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <h2 className="text-xl font-bold text-white">
+                    Services &amp; Specialties ({services.length})
+                  </h2>
+                  <p className="mt-1 text-xs text-slate-400">
+                    Drag and drop any row by its handle to reorder how
+                    specialties appear on the website.
+                  </p>
+                </div>
+                {savingServiceOrder && (
+                  <span className="rounded-full bg-cyan-400/15 px-3 py-1 text-xs font-bold text-cyan-300 animate-pulse">
+                    Saving Order...
+                  </span>
+                )}
+              </div>
 
-              <div className="mt-6 space-y-4">
+              <div className="mt-6 space-y-3">
                 {services.map((srv, idx) => {
                   const isEditingSrv = editingServiceId === srv.id;
+                  const isDragged = dragServiceIdx === idx;
+                  const isDragOver = dragOverServiceIdx === idx;
 
                   return (
                     <div
                       key={srv.id}
-                      className="rounded-2xl border border-white/10 bg-slate-900/50 p-5 transition hover:border-white/20"
+                      draggable={!isEditingSrv}
+                      onDragStart={() => {
+                        if (!isEditingSrv) setDragServiceIdx(idx);
+                      }}
+                      onDragOver={(e) => {
+                        if (!isEditingSrv) {
+                          e.preventDefault();
+                          setDragOverServiceIdx(idx);
+                        }
+                      }}
+                      onDragEnd={() => {
+                        setDragServiceIdx(null);
+                        setDragOverServiceIdx(null);
+                      }}
+                      onDrop={(e) => {
+                        if (!isEditingSrv) {
+                          e.preventDefault();
+                          handleDropService(idx);
+                        }
+                      }}
+                      className={`rounded-2xl border bg-slate-900/50 p-5 transition ${
+                        !isEditingSrv
+                          ? "cursor-grab active:cursor-grabbing"
+                          : ""
+                      } ${
+                        isDragOver
+                          ? "border-2 border-cyan-400 bg-cyan-950/25 ring-2 ring-cyan-400/30"
+                          : "border-white/10 hover:border-white/20"
+                      } ${isDragged ? "opacity-40" : "opacity-100"}`}
                     >
                       {isEditingSrv ? (
                         <form
-                          onSubmit={(e) => handleSaveServiceEdit(e, srv.id)}
+                          onSubmit={(e) => handleSaveServiceEdit(e, srv)}
                           className="space-y-4"
                         >
                           <div className="flex items-center justify-between border-b border-white/10 pb-2">
@@ -1292,8 +1614,8 @@ export default function AdminProjectsPage() {
                             </button>
                           </div>
 
-                          <div className="grid gap-4 sm:grid-cols-3">
-                            <div className="sm:col-span-2">
+                          <div className="grid gap-4 sm:grid-cols-2">
+                            <div>
                               <label className="block text-[11px] font-bold text-slate-300 uppercase">
                                 Specialty Name
                               </label>
@@ -1310,37 +1632,22 @@ export default function AdminProjectsPage() {
 
                             <div>
                               <label className="block text-[11px] font-bold text-slate-300 uppercase">
-                                Display Order
+                                Category Group
                               </label>
-                              <input
-                                type="number"
-                                min={1}
-                                value={editSrvOrder}
+                              <select
+                                value={editSrvCategory}
                                 onChange={(e) =>
-                                  setEditSrvOrder(Number(e.target.value))
+                                  setEditSrvCategory(e.target.value)
                                 }
                                 className="mt-1 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-2 text-sm text-white"
-                              />
+                              >
+                                {DEFAULT_CATEGORIES.map((cat) => (
+                                  <option key={cat} value={cat}>
+                                    {cat}
+                                  </option>
+                                ))}
+                              </select>
                             </div>
-                          </div>
-
-                          <div>
-                            <label className="block text-[11px] font-bold text-slate-300 uppercase">
-                              Category Group
-                            </label>
-                            <select
-                              value={editSrvCategory}
-                              onChange={(e) =>
-                                setEditSrvCategory(e.target.value)
-                              }
-                              className="mt-1 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-2 text-sm text-white"
-                            >
-                              {DEFAULT_CATEGORIES.map((cat) => (
-                                <option key={cat} value={cat}>
-                                  {cat}
-                                </option>
-                              ))}
-                            </select>
                           </div>
 
                           <div>
@@ -1375,13 +1682,29 @@ export default function AdminProjectsPage() {
                           </div>
                         </form>
                       ) : (
-                        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                           <div className="flex items-start gap-3.5">
+                            {/* Drag Grip Icon */}
+                            <div
+                              className="mt-1 flex flex-col gap-1 text-slate-500 transition group-hover:text-cyan-400"
+                              title="Drag to reorder"
+                            >
+                              <svg
+                                viewBox="0 0 16 16"
+                                className="h-5 w-5 fill-current"
+                                aria-hidden="true"
+                              >
+                                <circle cx="5" cy="3.5" r="1.3" />
+                                <circle cx="11" cy="3.5" r="1.3" />
+                                <circle cx="5" cy="8" r="1.3" />
+                                <circle cx="11" cy="8" r="1.3" />
+                                <circle cx="5" cy="12.5" r="1.3" />
+                                <circle cx="11" cy="12.5" r="1.3" />
+                              </svg>
+                            </div>
+
                             <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-400/15 font-mono text-xs font-bold text-cyan-300">
-                              {String(srv.displayOrder || idx + 1).padStart(
-                                2,
-                                "0"
-                              )}
+                              {String(idx + 1).padStart(2, "0")}
                             </span>
                             <div>
                               <div className="flex flex-wrap items-center gap-2">

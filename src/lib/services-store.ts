@@ -159,6 +159,42 @@ export async function deleteServiceRecord(
   return { found: true, services: filtered };
 }
 
+export async function reorderServicesRecord(
+  orderedIds: string[]
+): Promise<ServiceItem[]> {
+  const current = await getServices();
+  const byId = new Map(current.map((s) => [s.id, s]));
+  const reordered: ServiceItem[] = [];
+
+  for (const id of orderedIds) {
+    const found = byId.get(id);
+    if (found) {
+      reordered.push({ ...found, displayOrder: reordered.length + 1 });
+      byId.delete(id);
+    }
+  }
+  for (const remaining of byId.values()) {
+    reordered.push({ ...remaining, displayOrder: reordered.length + 1 });
+  }
+
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    await ensureSupabaseSchema();
+    await Promise.all(
+      reordered.map((srv) =>
+        supabase
+          .from("services")
+          .update({ display_order: srv.displayOrder })
+          .eq("id", srv.id)
+      )
+    );
+    return getServices();
+  }
+
+  await saveLocalServices(reordered);
+  return reordered;
+}
+
 async function saveLocalServices(services: ServiceItem[]): Promise<void> {
   await ensureLocalServicesFile();
   await fs.writeFile(SERVICES_FILE, JSON.stringify(services, null, 2), "utf-8");

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   getServices,
   createServiceRecord,
+  reorderServicesRecord,
   ServiceItem,
 } from "@/lib/services-store";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -68,6 +69,38 @@ export async function POST(request: NextRequest) {
     console.error("Failed to create service:", error);
     return NextResponse.json(
       { error: "Failed to create service." },
+      { status: 500 }
+    );
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  if (!isRequestAuthenticated(request)) {
+    return NextResponse.json(
+      { error: "Unauthorized. Please sign in to the Admin Portal." },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const body = await request.json();
+    if (!Array.isArray(body.orderedIds)) {
+      return NextResponse.json(
+        { error: "orderedIds array is required." },
+        { status: 400 }
+      );
+    }
+
+    const orderedIds = body.orderedIds.filter(
+      (id: unknown): id is string => typeof id === "string"
+    );
+    const updated = await reorderServicesRecord(orderedIds);
+
+    return NextResponse.json({ services: updated });
+  } catch (error) {
+    console.error("Failed to reorder services:", error);
+    return NextResponse.json(
+      { error: "Failed to save new display order." },
       { status: 500 }
     );
   }

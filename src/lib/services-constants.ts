@@ -1,0 +1,157 @@
+export interface ServiceItem {
+  id: string;
+  title: string;
+  category: string;
+  description: string;
+  displayOrder: number;
+}
+
+export const SERVICE_CATEGORY_META: Record<string, string> = {
+  "Pools & Aquatic Renovations":
+    "Custom swimming pools built & restored for family memories",
+  "Concrete, Pavers & Masonry":
+    "Durable structural concrete & artisan outdoor living features",
+  "Outdoor Fire, Seating & Structures":
+    "Custom backyard gathering spots crafted in stone & timber",
+  "Grading, Drainage, Turf & Exterior Care":
+    "Complete site preparation, water management & lush lawns",
+};
+
+export const DEFAULT_SEED_SERVICES: ServiceItem[] = [
+  {
+    id: "srv-01-new-pools-construction",
+    title: "New Pools Construction",
+    category: "Pools & Aquatic Renovations",
+    description:
+      "Turnkey custom swimming pool design, excavation, steel, shotcrete/gunite, plumbing, and luxury water features.",
+    displayOrder: 1,
+  },
+  {
+    id: "srv-02-pool-renovation",
+    title: "Pool Renovation",
+    category: "Pools & Aquatic Renovations",
+    description:
+      "Complete pool remodeling including new interior finishes, waterline tile, coping replacement, decking, and equipment upgrades.",
+    displayOrder: 2,
+  },
+  {
+    id: "srv-03-concrete-demolition",
+    title: "Concrete Demolition",
+    category: "Concrete, Pavers & Masonry",
+    description:
+      "Safe, clean removal and haul-away of old pool decks, cracked slabs, patios, and walkways.",
+    displayOrder: 3,
+  },
+  {
+    id: "srv-04-concrete-installation",
+    title: "Concrete Installation",
+    category: "Concrete, Pavers & Masonry",
+    description:
+      "Precision-poured architectural, brushed, and stamped concrete for pool decks, slabs, and walkways.",
+    displayOrder: 4,
+  },
+  {
+    id: "srv-05-driveways",
+    title: "Driveways",
+    category: "Concrete, Pavers & Masonry",
+    description:
+      "Full driveway replacement, extensions, and decorative finishes engineered for long-term durability.",
+    displayOrder: 5,
+  },
+  {
+    id: "srv-06-grading",
+    title: "Grading",
+    category: "Grading, Drainage, Turf & Exterior Care",
+    description:
+      "Precision lot leveling, backyard re-sloping, and site preparation for pools, patios, and lawns.",
+    displayOrder: 6,
+  },
+  {
+    id: "srv-07-drainage-installation",
+    title: "Drainage Installation",
+    category: "Grading, Drainage, Turf & Exterior Care",
+    description:
+      "French drains, catch basins, downspout tie-ins, and channel drains to protect your pool and foundation.",
+    displayOrder: 7,
+  },
+  {
+    id: "srv-08-rain-gardens",
+    title: "Rain Gardens",
+    category: "Grading, Drainage, Turf & Exterior Care",
+    description:
+      "Eco-friendly landscaped basins designed to capture runoff, filter stormwater, and beautify your yard.",
+    displayOrder: 8,
+  },
+  {
+    id: "srv-09-artificial-turf",
+    title: "Artificial Turf",
+    category: "Grading, Drainage, Turf & Exterior Care",
+    description:
+      "Low-maintenance, mud-free synthetic turf for pool surrounds, putting greens, and pet-friendly play areas.",
+    displayOrder: 9,
+  },
+  {
+    id: "srv-10-sod-installation",
+    title: "Sod Installation",
+    category: "Grading, Drainage, Turf & Exterior Care",
+    description:
+      "Fresh, professional-grade sod installation (Zoysia, Bermuda, Fescue) for an instant lush green lawn.",
+    displayOrder: 10,
+  },
+  {
+    id: "srv-11-retaining-wall-construction",
+    title: "Retaining Wall Construction",
+    category: "Outdoor Fire, Seating & Structures",
+    description:
+      "Engineered stone, block, and timber retaining walls to terrace sloped Georgia yards and prevent erosion.",
+    displayOrder: 11,
+  },
+  {
+    id: "srv-12-wooden-fence-construction",
+    title: "Wooden Fence Construction",
+    category: "Outdoor Fire, Seating & Structures",
+    description:
+      "Custom privacy and pool-code compliant wooden fencing built with premium treated lumber and cedar.",
+    displayOrder: 12,
+  },
+  {
+    id: "srv-13-fire-pits",
+    title: "Fire Pits",
+    category: "Outdoor Fire, Seating & Structures",
+    description:
+      "Wood-burning or gas-integrated stone fire pits for cozy year-round evenings poolside.",
+    displayOrder: 13,
+  },
+  {
+    id: "srv-14-stone-benches",
+    title: "Stone Benches",
+    category: "Outdoor Fire, Seating & Structures",
+    description:
+      "Built-in architectural stone seating walls and custom benches integrated around fire pits and patios.",
+    displayOrder: 14,
+  },
+  {
+    id: "srv-15-fireplaces",
+    title: "Fireplaces",
+    category: "Outdoor Fire, Seating & Structures",
+    description:
+      "Custom-built outdoor stone and masonry fireplaces that serve as the centerpiece of your backyard.",
+    displayOrder: 15,
+  },
+  {
+    id: "srv-16-pressure-washing",
+    title: "Pressure Washing",
+    category: "Grading, Drainage, Turf & Exterior Care",
+    description:
+      "Deep exterior surface cleaning for pool decks, driveways, stone walls, patios, and siding.",
+    displayOrder: 16,
+  },
+  {
+    id: "srv-17-concrete-pavers-patios",
+    title: "Concrete Pavers Patios",
+    category: "Concrete, Pavers & Masonry",
+    description:
+      "Custom interlocking concrete pavers, travertine, and stone patios that elevate your outdoor entertaining space.",
+    displayOrder: 17,
+  },
+];

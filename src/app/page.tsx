@@ -1,138 +1,8 @@
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
 import { ProjectsShowcase } from "@/components/ProjectsShowcase";
-
-const serviceCategories = [
-  {
-    category: "Pools & Aquatic Renovations",
-    subtitle: "Custom swimming pools built & restored for family memories",
-    items: [
-      {
-        title: "New Pools Construction",
-        description:
-          "Turnkey custom swimming pool design, excavation, steel, shotcrete/gunite, plumbing, and luxury water features.",
-      },
-      {
-        title: "Pool Renovation",
-        description:
-          "Complete pool remodeling including new interior finishes, waterline tile, coping replacement, decking, and equipment upgrades.",
-      },
-    ],
-  },
-  {
-    category: "Concrete, Pavers & Masonry",
-    subtitle: "Durable structural concrete & artisan outdoor living features",
-    items: [
-      {
-        title: "Concrete Demolition",
-        description:
-          "Safe, clean removal and haul-away of old pool decks, cracked slabs, patios, and walkways.",
-      },
-      {
-        title: "Concrete Installation",
-        description:
-          "Precision-poured architectural, brushed, and stamped concrete for pool decks, slabs, and walkways.",
-      },
-      {
-        title: "Driveways",
-        description:
-          "Full driveway replacement, extensions, and decorative finishes engineered for long-term durability.",
-      },
-      {
-        title: "Concrete Pavers Patios",
-        description:
-          "Custom interlocking concrete pavers, travertine, and stone patios that elevate your outdoor entertaining space.",
-      },
-    ],
-  },
-  {
-    category: "Outdoor Fire, Seating & Structures",
-    subtitle: "Custom backyard gathering spots crafted in stone & timber",
-    items: [
-      {
-        title: "Fireplaces",
-        description:
-          "Custom-built outdoor stone and masonry fireplaces that serve as the centerpiece of your backyard.",
-      },
-      {
-        title: "Fire Pits",
-        description:
-          "Wood-burning or gas-integrated stone fire pits for cozy year-round evenings poolside.",
-      },
-      {
-        title: "Stone Benches",
-        description:
-          "Built-in architectural stone seating walls and custom benches integrated around fire pits and patios.",
-      },
-      {
-        title: "Retaining Wall Construction",
-        description:
-          "Engineered stone, block, and timber retaining walls to terrace sloped Georgia yards and prevent erosion.",
-      },
-      {
-        title: "Wooden Fence Construction",
-        description:
-          "Custom privacy and pool-code compliant wooden fencing built with premium treated lumber and cedar.",
-      },
-    ],
-  },
-  {
-    category: "Grading, Drainage, Turf & Exterior Care",
-    subtitle: "Complete site preparation, water management & lush lawns",
-    items: [
-      {
-        title: "Grading",
-        description:
-          "Precision lot leveling, backyard re-sloping, and site preparation for pools, patios, and lawns.",
-      },
-      {
-        title: "Drainage Installation",
-        description:
-          "French drains, catch basins, downspout tie-ins, and channel drains to protect your pool and foundation.",
-      },
-      {
-        title: "Rain Gardens",
-        description:
-          "Eco-friendly landscaped basins designed to capture runoff, filter stormwater, and beautify your yard.",
-      },
-      {
-        title: "Artificial Turf",
-        description:
-          "Low-maintenance, mud-free synthetic turf for pool surrounds, putting greens, and pet-friendly play areas.",
-      },
-      {
-        title: "Sod Installation",
-        description:
-          "Fresh, professional-grade sod installation (Zoysia, Bermuda, Fescue) for an instant lush green lawn.",
-      },
-      {
-        title: "Pressure Washing",
-        description:
-          "Deep exterior surface cleaning for pool decks, driveways, stone walls, patios, and siding.",
-      },
-    ],
-  },
-];
-
-const allSpecialtiesList = [
-  "New Pools Construction",
-  "Pool Renovation",
-  "Concrete Demolition",
-  "Concrete Installation",
-  "Driveways",
-  "Grading",
-  "Drainage Installation",
-  "Rain Gardens",
-  "Artificial Turf",
-  "Sod Installation",
-  "Retaining Wall Construction",
-  "Wooden Fence Construction",
-  "Fire Pits",
-  "Stone Benches",
-  "Fireplaces",
-  "Pressure Washing",
-  "Concrete Pavers Patios",
-];
+import { ServicesShowcase } from "@/components/ServicesShowcase";
+import { DEFAULT_SEED_SERVICES } from "@/lib/services-constants";
 
 const processSteps = [
   {
@@ -174,19 +44,19 @@ export default function Home() {
             </span>
             <a
               href="mailto:Atlinspirationpools@gmail.com"
-              className="hover:text-cyan-300 transition"
+              className="transition hover:text-cyan-300"
             >
               Atlinspirationpools@gmail.com
             </a>
           </div>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1 font-mono text-xs">
-            <a href="tel:4045739665" className="hover:text-cyan-300 transition">
+            <a href="tel:4045739665" className="transition hover:text-cyan-300">
               Office: (404) 573-9665
             </a>
-            <a href="tel:4049568471" className="hover:text-cyan-300 transition">
+            <a href="tel:4049568471" className="transition hover:text-cyan-300">
               Cell: (404) 956-8471
             </a>
-            <a href="tel:4044535360" className="hover:text-cyan-300 transition">
+            <a href="tel:4044535360" className="transition hover:text-cyan-300">
               Cell: (404) 453-5360
             </a>
           </div>
@@ -196,7 +66,10 @@ export default function Home() {
       {/* Navigation */}
       <header className="sticky top-0 z-50 border-b border-white/10 bg-slate-950/85 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-3.5 lg:px-8">
-          <Link href="/" aria-label="ATL Inspiration Pools & Construction Inc. Home">
+          <Link
+            href="/"
+            aria-label="ATL Inspiration Pools & Construction Inc. Home"
+          >
             <BrandLogo variant="compact" />
           </Link>
 
@@ -208,7 +81,7 @@ export default function Home() {
               Services &amp; Specialties
             </a>
             <a href="#checklist" className="transition hover:text-cyan-400">
-              All 17 Specialties
+              All Specialties
             </a>
             <a href="#process" className="transition hover:text-cyan-400">
               How We Work
@@ -262,10 +135,11 @@ export default function Home() {
                   <strong className="font-semibold text-white">
                     ATL Inspiration Pools &amp; Construction Inc.
                   </strong>{" "}
-                  is a family-owned Atlanta pool and outdoor construction company.
-                  From custom new pools, renovations, and concrete paver patios to
-                  grading, drainage, retaining walls, fireplaces, and turf—our team
-                  handles every detail of your backyard transformation.
+                  is a family-owned Atlanta pool and outdoor construction
+                  company. From custom new pools, renovations, and concrete
+                  paver patios to grading, drainage, retaining walls,
+                  fireplaces, and turf—our team handles every detail of your
+                  backyard transformation.
                 </p>
 
                 <div className="mt-9 flex flex-wrap items-center gap-4">
@@ -279,7 +153,7 @@ export default function Home() {
                     href="#specialties"
                     className="rounded-full border border-white/15 bg-white/5 px-7 py-4 text-base font-semibold text-white transition hover:border-cyan-400/50 hover:bg-white/10"
                   >
-                    Explore All 17 Specialties
+                    Explore Our Specialties
                   </a>
                 </div>
 
@@ -338,8 +212,8 @@ export default function Home() {
                       “Bringing Happiness, Creating the Backyard of Your Dreams”
                     </p>
                     <p className="mt-2 text-xs text-slate-300">
-                      Complete Pool Construction, Concrete, Hardscaping, Grading &amp;
-                      Drainage Specialists Across Metro Atlanta.
+                      Complete Pool Construction, Concrete, Hardscaping, Grading
+                      &amp; Drainage Specialists Across Metro Atlanta.
                     </p>
                   </div>
                 </div>
@@ -351,118 +225,8 @@ export default function Home() {
         {/* Dynamic Projects Portfolio Gallery */}
         <ProjectsShowcase />
 
-        {/* Full List of Services & Specialties Banner (Matching Company Sheet) */}
-        <section
-          id="checklist"
-          className="border-b border-white/10 bg-slate-900/50 py-20"
-        >
-          <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <div className="mx-auto max-w-3xl text-center">
-              <p className="text-sm font-semibold tracking-widest text-cyan-400 uppercase">
-                Official Capabilities
-              </p>
-              <h2 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                List of Services &amp; Specialties
-              </h2>
-              <p className="mt-3 text-slate-300">
-                Everything your property needs from initial excavation and drainage
-                to pools, stonework, driveways, and finishing touches.
-              </p>
-            </div>
-
-            <div className="mt-12 overflow-hidden rounded-3xl border border-white/15 bg-slate-950 shadow-2xl">
-              <div className="border-b border-white/10 bg-gradient-to-r from-slate-800 via-slate-900 to-slate-800 px-6 py-4 text-center">
-                <h3 className="text-sm font-bold tracking-widest text-cyan-300 uppercase">
-                  Description of Specialties
-                </h3>
-              </div>
-              <div className="grid divide-y divide-white/10 sm:grid-cols-2 sm:divide-x lg:grid-cols-3">
-                {allSpecialtiesList.map((item, idx) => (
-                  <div
-                    key={item}
-                    className="flex items-center gap-3.5 px-6 py-4 transition hover:bg-cyan-400/5"
-                  >
-                    <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-400/15 font-mono text-xs font-bold text-cyan-300">
-                      {String(idx + 1).padStart(2, "0")}
-                    </span>
-                    <span className="text-sm font-bold tracking-wide text-white uppercase">
-                      {item}
-                    </span>
-                  </div>
-                ))}
-                <div className="flex items-center justify-center bg-gradient-to-r from-cyan-500/10 to-blue-500/10 px-6 py-4 sm:col-span-2 lg:col-span-1">
-                  <a
-                    href="#contact"
-                    className="text-xs font-extrabold tracking-widest text-cyan-300 uppercase hover:text-cyan-200"
-                  >
-                    Request a Quote for Any Service &rarr;
-                  </a>
-                </div>
-              </div>
-              <div className="border-t border-white/10 bg-cyan-950/40 px-6 py-3.5 text-center">
-                <p className="text-xs font-extrabold tracking-widest text-cyan-300 uppercase">
-                  “Bringing Happiness, Creating the Backyard of Your Dreams”
-                </p>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Detailed Categorized Services Section */}
-        <section id="specialties" className="py-24">
-          <div className="mx-auto max-w-7xl px-6 lg:px-8">
-            <div className="max-w-3xl">
-              <p className="text-sm font-semibold tracking-widest text-cyan-400 uppercase">
-                Turnkey Craftsmanship
-              </p>
-              <h2 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-                Complete Pool, Concrete &amp; Backyard Solutions
-              </h2>
-              <p className="mt-4 text-slate-400">
-                Instead of hiring multiple contractors for your pool, concrete,
-                grading, drainage, fencing, and landscaping, our family company
-                coordinates and builds your entire outdoor project seamlessly.
-              </p>
-            </div>
-
-            <div className="mt-14 space-y-14">
-              {serviceCategories.map((group) => (
-                <div key={group.category}>
-                  <div className="border-l-4 border-cyan-400 pl-4">
-                    <h3 className="text-2xl font-bold text-white">
-                      {group.category}
-                    </h3>
-                    <p className="mt-1 text-sm text-slate-400">{group.subtitle}</p>
-                  </div>
-
-                  <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-                    {group.items.map((service) => (
-                      <div
-                        key={service.title}
-                        className="group flex flex-col justify-between rounded-2xl border border-white/10 bg-slate-900/60 p-6 transition hover:border-cyan-400/40 hover:bg-slate-900"
-                      >
-                        <div>
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="inline-block h-2 w-2 rounded-full bg-cyan-400" />
-                            <span className="text-[11px] font-semibold tracking-wider text-slate-500 uppercase">
-                              ATL Inspiration Specialty
-                            </span>
-                          </div>
-                          <h4 className="mt-3 text-lg font-bold text-white transition group-hover:text-cyan-300 uppercase">
-                            {service.title}
-                          </h4>
-                          <p className="mt-2 text-sm leading-relaxed text-slate-300">
-                            {service.description}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </section>
+        {/* Dynamic Database-Backed Services & Specialties */}
+        <ServicesShowcase />
 
         {/* Construction Process */}
         <section
@@ -584,7 +348,9 @@ export default function Home() {
                     </p>
                     <p className="mt-1 text-sm text-slate-200">
                       We proudly serve clients in both{" "}
-                      <strong className="text-white">English &amp; Spanish</strong>{" "}
+                      <strong className="text-white">
+                        English &amp; Spanish
+                      </strong>{" "}
                       across the Greater Atlanta area.
                     </p>
                   </div>
@@ -659,9 +425,9 @@ export default function Home() {
                         name="service"
                         className="mt-2 w-full rounded-xl border border-white/15 bg-slate-900 px-4 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
                       >
-                        {allSpecialtiesList.map((specialty) => (
-                          <option key={specialty} value={specialty}>
-                            {specialty}
+                        {DEFAULT_SEED_SERVICES.map((specialty) => (
+                          <option key={specialty.id} value={specialty.title}>
+                            {specialty.title}
                           </option>
                         ))}
                         <option value="Multiple Services / Full Backyard">
@@ -708,8 +474,8 @@ export default function Home() {
               “Bringing Happiness, Creating the Backyard of Your Dreams”
             </p>
             <p className="mt-1">
-              &copy; 2026 ATL Inspiration Pools &amp; Construction Inc. (“A Family
-              Company”). All rights reserved.
+              &copy; 2026 ATL Inspiration Pools &amp; Construction Inc. (“A
+              Family Company”). All rights reserved.
             </p>
           </div>
         </div>

@@ -4,26 +4,13 @@ import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { BrandLogo } from "@/components/BrandLogo";
 import type { ProjectItem } from "@/lib/projects-store";
+import type { ServiceItem } from "@/lib/services-constants";
+import {
+  DEFAULT_SEED_SERVICES,
+  SERVICE_CATEGORY_META,
+} from "@/lib/services-constants";
 
-const ALL_SPECIALTIES = [
-  "New Pools Construction",
-  "Pool Renovation",
-  "Concrete Demolition",
-  "Concrete Installation",
-  "Driveways",
-  "Grading",
-  "Drainage Installation",
-  "Rain Gardens",
-  "Artificial Turf",
-  "Sod Installation",
-  "Retaining Wall Construction",
-  "Wooden Fence Construction",
-  "Fire Pits",
-  "Stone Benches",
-  "Fireplaces",
-  "Pressure Washing",
-  "Concrete Pavers Patios",
-];
+const DEFAULT_CATEGORIES = Object.keys(SERVICE_CATEGORY_META);
 
 export default function AdminProjectsPage() {
   // Authentication state
@@ -34,14 +21,24 @@ export default function AdminProjectsPage() {
   const [loginError, setLoginError] = useState<string | null>(null);
   const [loggingIn, setLoggingIn] = useState(false);
 
-  // Projects state
+  // Active Admin Tab
+  const [activeTab, setActiveTab] = useState<"projects" | "services">(
+    "projects"
+  );
+
+  // Projects & Services state
   const [projects, setProjects] = useState<ProjectItem[]>([]);
+  const [services, setServices] = useState<ServiceItem[]>(
+    DEFAULT_SEED_SERVICES
+  );
   const [loading, setLoading] = useState(true);
 
-  // Create form state
+  // Create Project form state
   const [title, setTitle] = useState("");
   const [location, setLocation] = useState("");
-  const [specialty, setSpecialty] = useState(ALL_SPECIALTIES[0]);
+  const [specialty, setSpecialty] = useState(
+    DEFAULT_SEED_SERVICES[0]?.title || "New Pools Construction"
+  );
   const [description, setDescription] = useState("");
   const [featured, setFeatured] = useState(true);
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
@@ -63,6 +60,21 @@ export default function AdminProjectsPage() {
   const [editNewFiles, setEditNewFiles] = useState<File[]>([]);
   const [savingEdit, setSavingEdit] = useState(false);
 
+  // Create Service form state
+  const [srvTitle, setSrvTitle] = useState("");
+  const [srvCategory, setSrvCategory] = useState(DEFAULT_CATEGORIES[0]);
+  const [srvDescription, setSrvDescription] = useState("");
+  const [srvOrder, setSrvOrder] = useState<number>(18);
+  const [submittingService, setSubmittingService] = useState(false);
+
+  // Editing existing service state
+  const [editingServiceId, setEditingServiceId] = useState<string | null>(null);
+  const [editSrvTitle, setEditSrvTitle] = useState("");
+  const [editSrvCategory, setEditSrvCategory] = useState("");
+  const [editSrvDescription, setEditSrvDescription] = useState("");
+  const [editSrvOrder, setEditSrvOrder] = useState<number>(1);
+  const [savingServiceEdit, setSavingServiceEdit] = useState(false);
+
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   async function checkSession() {
@@ -73,7 +85,7 @@ export default function AdminProjectsPage() {
         const data = await res.json();
         setAuthenticated(Boolean(data.authenticated));
         if (data.authenticated) {
-          await fetchProjects();
+          await fetchAllData();
         }
       }
     } catch {
@@ -83,18 +95,31 @@ export default function AdminProjectsPage() {
     }
   }
 
-  async function fetchProjects() {
+  async function fetchAllData() {
     setLoading(true);
     try {
-      const res = await fetch("/api/projects", { cache: "no-store" });
-      if (res.ok) {
-        const data = await res.json();
-        setProjects(Array.isArray(data.projects) ? data.projects : []);
+      const [projRes, srvRes] = await Promise.all([
+        fetch("/api/projects", { cache: "no-store" }),
+        fetch("/api/services", { cache: "no-store" }),
+      ]);
+
+      if (projRes.ok) {
+        const projData = await projRes.json();
+        setProjects(Array.isArray(projData.projects) ? projData.projects : []);
+      }
+
+      if (srvRes.ok) {
+        const srvData = await srvRes.json();
+        if (Array.isArray(srvData.services) && srvData.services.length > 0) {
+          setServices(srvData.services);
+          setSrvOrder(srvData.services.length + 1);
+          setSpecialty((prev) => prev || srvData.services[0].title);
+        }
       }
     } catch {
       setStatusMessage({
         type: "error",
-        text: "Could not load projects from server.",
+        text: "Could not load data from server.",
       });
     } finally {
       setLoading(false);
@@ -138,7 +163,7 @@ export default function AdminProjectsPage() {
 
       setAuthenticated(true);
       setLoginPass("");
-      await fetchProjects();
+      await fetchAllData();
     } catch {
       setLoginError("Failed to sign in. Please try again.");
     } finally {
@@ -163,6 +188,7 @@ export default function AdminProjectsPage() {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== idx));
   }
 
+  // --- PROJECT HANDLERS ---
   async function handleCreateProject(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) {
@@ -206,7 +232,7 @@ export default function AdminProjectsPage() {
       setProjects(data.projects);
       setTitle("");
       setLocation("");
-      setSpecialty(ALL_SPECIALTIES[0]);
+      setSpecialty(services[0]?.title || "New Pools Construction");
       setDescription("");
       setFeatured(true);
       setSelectedFiles([]);
@@ -314,6 +340,139 @@ export default function AdminProjectsPage() {
       });
     } finally {
       setSavingEdit(false);
+    }
+  }
+
+  // --- SERVICE / SPECIALTY HANDLERS ---
+  async function handleCreateService(e: React.FormEvent) {
+    e.preventDefault();
+    if (!srvTitle.trim()) {
+      setStatusMessage({
+        type: "error",
+        text: "Please enter a service / specialty name.",
+      });
+      return;
+    }
+
+    setSubmittingService(true);
+    setStatusMessage(null);
+
+    try {
+      const res = await fetch("/api/services", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: srvTitle.trim(),
+          category: srvCategory,
+          description: srvDescription.trim(),
+          displayOrder: Number(srvOrder) || services.length + 1,
+        }),
+      });
+
+      if (res.status === 401) {
+        setAuthenticated(false);
+        return;
+      }
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to add service.");
+      }
+
+      setServices(data.services);
+      setSrvTitle("");
+      setSrvDescription("");
+      setSrvOrder(data.services.length + 1);
+
+      setStatusMessage({
+        type: "success",
+        text: `Added specialty "${data.service.title}" to the database!`,
+      });
+    } catch (err) {
+      setStatusMessage({
+        type: "error",
+        text:
+          err instanceof Error ? err.message : "Failed to create specialty.",
+      });
+    } finally {
+      setSubmittingService(false);
+    }
+  }
+
+  function startEditingService(srv: ServiceItem) {
+    setEditingServiceId(srv.id);
+    setEditSrvTitle(srv.title);
+    setEditSrvCategory(srv.category);
+    setEditSrvDescription(srv.description);
+    setEditSrvOrder(srv.displayOrder);
+  }
+
+  async function handleSaveServiceEdit(e: React.FormEvent, id: string) {
+    e.preventDefault();
+    setSavingServiceEdit(true);
+    setStatusMessage(null);
+
+    try {
+      const res = await fetch(`/api/services/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: editSrvTitle.trim(),
+          category: editSrvCategory.trim(),
+          description: editSrvDescription.trim(),
+          displayOrder: Number(editSrvOrder) || 1,
+        }),
+      });
+
+      if (res.status === 401) {
+        setAuthenticated(false);
+        return;
+      }
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || "Failed to update specialty.");
+      }
+
+      setServices(data.services);
+      setEditingServiceId(null);
+      setStatusMessage({
+        type: "success",
+        text: `Updated specialty "${data.service.title}"!`,
+      });
+    } catch (err) {
+      setStatusMessage({
+        type: "error",
+        text:
+          err instanceof Error ? err.message : "Failed to update specialty.",
+      });
+    } finally {
+      setSavingServiceEdit(false);
+    }
+  }
+
+  async function handleDeleteService(id: string, srvName: string) {
+    try {
+      const res = await fetch(`/api/services/${id}`, {
+        method: "DELETE",
+      });
+      if (res.status === 401) {
+        setAuthenticated(false);
+        return;
+      }
+      if (res.ok) {
+        const data = await res.json();
+        setServices(data.services);
+        setStatusMessage({
+          type: "success",
+          text: `Removed specialty "${srvName}".`,
+        });
+      }
+    } catch {
+      setStatusMessage({
+        type: "error",
+        text: "Failed to delete specialty.",
+      });
     }
   }
 
@@ -439,10 +598,10 @@ export default function AdminProjectsPage() {
 
           <div className="flex items-center gap-3">
             <Link
-              href="/#projects"
+              href="/"
               className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-xs font-semibold text-white transition hover:border-cyan-400/50 hover:bg-white/10"
             >
-              &larr; View Live Site Gallery
+              &larr; View Live Website
             </Link>
             <button
               type="button"
@@ -456,26 +615,63 @@ export default function AdminProjectsPage() {
       </header>
 
       <main className="mx-auto max-w-7xl px-6 py-12 lg:px-8">
-        <div className="mb-10 flex flex-col justify-between gap-4 border-b border-white/10 pb-8 sm:flex-row sm:items-end">
+        <div className="mb-8 flex flex-col justify-between gap-6 border-b border-white/10 pb-8 sm:flex-row sm:items-end">
           <div>
             <p className="text-xs font-bold tracking-widest text-cyan-400 uppercase">
-              Portfolio &amp; Photo Manager
+              Database Management
             </p>
             <h1 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              Project Administration Portal
+              Admin Control Center
             </h1>
             <p className="mt-2 text-sm text-slate-400">
-              Add new construction projects, upload multiple job-site photos,
-              and manage the portfolio gallery shown on the public website.
+              Manage your portfolio projects, job-site photos, and company
+              services &amp; specialties stored in Supabase.
             </p>
+
+            {/* Module Switcher Tabs */}
+            <div className="mt-6 inline-flex rounded-2xl border border-white/10 bg-slate-900/90 p-1.5">
+              <button
+                type="button"
+                onClick={() => setActiveTab("projects")}
+                className={`rounded-xl px-5 py-2.5 text-xs font-bold tracking-wider uppercase transition ${
+                  activeTab === "projects"
+                    ? "bg-cyan-400 text-slate-950 shadow"
+                    : "text-slate-300 hover:text-white"
+                }`}
+              >
+                Portfolio Projects ({projects.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab("services")}
+                className={`rounded-xl px-5 py-2.5 text-xs font-bold tracking-wider uppercase transition ${
+                  activeTab === "services"
+                    ? "bg-cyan-400 text-slate-950 shadow"
+                    : "text-slate-300 hover:text-white"
+                }`}
+              >
+                Services &amp; Specialties ({services.length})
+              </button>
+            </div>
           </div>
-          <div className="rounded-2xl border border-white/10 bg-slate-900/70 px-5 py-3 text-right">
-            <span className="block text-[11px] tracking-wider text-slate-400 uppercase">
-              Total Published Projects
-            </span>
-            <span className="font-mono text-2xl font-extrabold text-cyan-400">
-              {projects.length}
-            </span>
+
+          <div className="flex gap-3">
+            <div className="rounded-2xl border border-white/10 bg-slate-900/70 px-5 py-3 text-right">
+              <span className="block text-[11px] tracking-wider text-slate-400 uppercase">
+                Projects
+              </span>
+              <span className="font-mono text-2xl font-extrabold text-cyan-400">
+                {projects.length}
+              </span>
+            </div>
+            <div className="rounded-2xl border border-white/10 bg-slate-900/70 px-5 py-3 text-right">
+              <span className="block text-[11px] tracking-wider text-slate-400 uppercase">
+                Specialties
+              </span>
+              <span className="font-mono text-2xl font-extrabold text-cyan-400">
+                {services.length}
+              </span>
+            </div>
           </div>
         </div>
 
@@ -498,299 +694,653 @@ export default function AdminProjectsPage() {
           </div>
         )}
 
-        <div className="grid gap-12 lg:grid-cols-12">
-          {/* Left Column: Add New Project + Image Upload Form */}
-          <div className="lg:col-span-5">
-            <form
-              onSubmit={handleCreateProject}
-              className="sticky top-24 rounded-3xl border border-white/15 bg-slate-900/60 p-7 shadow-2xl"
-            >
-              <h2 className="text-xl font-bold text-white">
-                Add New Project &amp; Upload Photos
-              </h2>
-              <p className="mt-1 text-xs text-slate-400">
-                Upload one or more photos from your computer or phone.
-              </p>
+        {activeTab === "projects" ? (
+          /* ================= PROJECTS TAB ================= */
+          <div className="grid gap-12 lg:grid-cols-12">
+            {/* Left Column: Add New Project + Image Upload Form */}
+            <div className="lg:col-span-5">
+              <form
+                onSubmit={handleCreateProject}
+                className="sticky top-24 rounded-3xl border border-white/15 bg-slate-900/60 p-7 shadow-2xl"
+              >
+                <h2 className="text-xl font-bold text-white">
+                  Add New Project &amp; Upload Photos
+                </h2>
+                <p className="mt-1 text-xs text-slate-400">
+                  Upload one or more photos from your computer or phone.
+                </p>
 
-              <div className="mt-6 space-y-5">
-                <div>
-                  <label
-                    htmlFor="proj-title"
-                    className="block text-xs font-bold tracking-wider text-slate-300 uppercase"
-                  >
-                    Project Title *
-                  </label>
-                  <input
-                    id="proj-title"
-                    type="text"
-                    required
-                    value={title}
-                    onChange={(e) => setTitle(e.target.value)}
-                    placeholder="e.g., Sandy Springs Custom Gunite Pool & Paver Patio"
-                    className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none"
-                  />
-                </div>
-
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="mt-6 space-y-5">
                   <div>
                     <label
-                      htmlFor="proj-location"
+                      htmlFor="proj-title"
                       className="block text-xs font-bold tracking-wider text-slate-300 uppercase"
                     >
-                      Location / City
+                      Project Title *
                     </label>
                     <input
-                      id="proj-location"
+                      id="proj-title"
                       type="text"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      placeholder="e.g., Marietta, GA"
+                      required
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      placeholder="e.g., Sandy Springs Custom Gunite Pool & Paver Patio"
                       className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none"
                     />
                   </div>
 
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                      <label
+                        htmlFor="proj-location"
+                        className="block text-xs font-bold tracking-wider text-slate-300 uppercase"
+                      >
+                        Location / City
+                      </label>
+                      <input
+                        id="proj-location"
+                        type="text"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        placeholder="e.g., Marietta, GA"
+                        className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="proj-specialty"
+                        className="block text-xs font-bold tracking-wider text-slate-300 uppercase"
+                      >
+                        Specialty Category
+                      </label>
+                      <select
+                        id="proj-specialty"
+                        value={specialty}
+                        onChange={(e) => setSpecialty(e.target.value)}
+                        className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                      >
+                        {services.map((item) => (
+                          <option key={item.id} value={item.title}>
+                            {item.title}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+
                   <div>
                     <label
-                      htmlFor="proj-specialty"
+                      htmlFor="proj-desc"
                       className="block text-xs font-bold tracking-wider text-slate-300 uppercase"
                     >
-                      Specialty Category
+                      Project Description &amp; Highlights
                     </label>
-                    <select
-                      id="proj-specialty"
-                      value={specialty}
-                      onChange={(e) => setSpecialty(e.target.value)}
-                      className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
-                    >
-                      {ALL_SPECIALTIES.map((item) => (
-                        <option key={item} value={item}>
-                          {item}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label
-                    htmlFor="proj-desc"
-                    className="block text-xs font-bold tracking-wider text-slate-300 uppercase"
-                  >
-                    Project Description &amp; Highlights
-                  </label>
-                  <textarea
-                    id="proj-desc"
-                    rows={3}
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    placeholder="Describe the pool features, stone benches, drainage, turf, or concrete work completed..."
-                    className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none"
-                  />
-                </div>
-
-                {/* Multi-Image Upload Dropzone */}
-                <div>
-                  <label className="block text-xs font-bold tracking-wider text-slate-300 uppercase">
-                    Project Photos (JPG, PNG, WebP, SVG)
-                  </label>
-                  <div className="mt-2 rounded-2xl border-2 border-dashed border-cyan-400/35 bg-slate-950/70 p-5 text-center transition hover:border-cyan-400">
-                    <input
-                      ref={fileInputRef}
-                      id="proj-images"
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleFileSelect}
-                      className="hidden"
+                    <textarea
+                      id="proj-desc"
+                      rows={3}
+                      value={description}
+                      onChange={(e) => setDescription(e.target.value)}
+                      placeholder="Describe the pool features, stone benches, drainage, turf, or concrete work completed..."
+                      className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none"
                     />
-                    <label
-                      htmlFor="proj-images"
-                      className="flex cursor-pointer flex-col items-center"
-                    >
-                      <span className="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-400/15 text-xl font-bold text-cyan-300">
-                        +
-                      </span>
-                      <span className="mt-2 text-sm font-semibold text-white">
-                        Click to Select Project Images
-                      </span>
-                      <span className="mt-1 text-xs text-slate-400">
-                        You can select multiple photos at once
-                      </span>
-                    </label>
                   </div>
 
-                  {/* Selected Image Previews */}
-                  {previewUrls.length > 0 && (
-                    <div className="mt-4">
-                      <p className="text-xs font-semibold text-cyan-300">
-                        Ready to upload ({previewUrls.length} photo
-                        {previewUrls.length === 1 ? "" : "s"}):
-                      </p>
-                      <div className="mt-2 grid grid-cols-3 gap-2.5">
-                        {previewUrls.map((url, idx) => (
-                          <div
-                            key={url}
-                            className="group relative aspect-video overflow-hidden rounded-xl border border-white/15 bg-slate-950"
-                          >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
-                              src={url}
-                              alt={`Upload preview ${idx + 1}`}
-                              className="h-full w-full object-cover"
-                            />
-                            <button
-                              type="button"
-                              onClick={() => removeSelectedFile(idx)}
-                              className="absolute top-1 right-1 rounded-full bg-slate-950/85 px-2 py-0.5 text-[10px] font-bold text-rose-300 hover:bg-rose-500 hover:text-white"
-                            >
-                              ✕
-                            </button>
-                          </div>
-                        ))}
-                      </div>
+                  {/* Multi-Image Upload Dropzone */}
+                  <div>
+                    <label className="block text-xs font-bold tracking-wider text-slate-300 uppercase">
+                      Project Photos (JPG, PNG, WebP, SVG)
+                    </label>
+                    <div className="mt-2 rounded-2xl border-2 border-dashed border-cyan-400/35 bg-slate-950/70 p-5 text-center transition hover:border-cyan-400">
+                      <input
+                        ref={fileInputRef}
+                        id="proj-images"
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleFileSelect}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="proj-images"
+                        className="flex cursor-pointer flex-col items-center"
+                      >
+                        <span className="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-400/15 text-xl font-bold text-cyan-300">
+                          +
+                        </span>
+                        <span className="mt-2 text-sm font-semibold text-white">
+                          Click to Select Project Images
+                        </span>
+                        <span className="mt-1 text-xs text-slate-400">
+                          You can select multiple photos at once
+                        </span>
+                      </label>
                     </div>
-                  )}
+
+                    {/* Selected Image Previews */}
+                    {previewUrls.length > 0 && (
+                      <div className="mt-4">
+                        <p className="text-xs font-semibold text-cyan-300">
+                          Ready to upload ({previewUrls.length} photo
+                          {previewUrls.length === 1 ? "" : "s"}):
+                        </p>
+                        <div className="mt-2 grid grid-cols-3 gap-2.5">
+                          {previewUrls.map((url, idx) => (
+                            <div
+                              key={url}
+                              className="group relative aspect-video overflow-hidden rounded-xl border border-white/15 bg-slate-950"
+                            >
+                              {/* eslint-disable-next-line @next/next/no-img-element */}
+                              <img
+                                src={url}
+                                alt={`Upload preview ${idx + 1}`}
+                                className="h-full w-full object-cover"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => removeSelectedFile(idx)}
+                                className="absolute top-1 right-1 rounded-full bg-slate-950/85 px-2 py-0.5 text-[10px] font-bold text-rose-300 hover:bg-rose-500 hover:text-white"
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-slate-950/60 p-3.5">
+                    <input
+                      type="checkbox"
+                      checked={featured}
+                      onChange={(e) => setFeatured(e.target.checked)}
+                      className="h-4 w-4 accent-cyan-400"
+                    />
+                    <span className="text-xs font-semibold text-slate-200">
+                      Mark as ★ Featured Build on Homepage
+                    </span>
+                  </label>
+
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="w-full rounded-full bg-gradient-to-r from-cyan-400 to-sky-500 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:brightness-110 disabled:opacity-50"
+                  >
+                    {submitting
+                      ? "Uploading Photos & Saving..."
+                      : "Publish Project & Upload Images"}
+                  </button>
                 </div>
+              </form>
+            </div>
 
-                <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-white/10 bg-slate-950/60 p-3.5">
-                  <input
-                    type="checkbox"
-                    checked={featured}
-                    onChange={(e) => setFeatured(e.target.checked)}
-                    className="h-4 w-4 accent-cyan-400"
-                  />
-                  <span className="text-xs font-semibold text-slate-200">
-                    Mark as ★ Featured Build on Homepage
-                  </span>
-                </label>
+            {/* Right Column: Existing Projects List */}
+            <div className="lg:col-span-7">
+              <h2 className="text-xl font-bold text-white">
+                Published Projects ({projects.length})
+              </h2>
+              <p className="mt-1 text-xs text-slate-400">
+                Edit details, upload additional photos to existing projects, or
+                remove outdated entries.
+              </p>
 
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="w-full rounded-full bg-gradient-to-r from-cyan-400 to-sky-500 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:brightness-110 disabled:opacity-50"
-                >
-                  {submitting
-                    ? "Uploading Photos & Saving..."
-                    : "Publish Project & Upload Images"}
-                </button>
-              </div>
-            </form>
+              {loading ? (
+                <div className="mt-6 space-y-4">
+                  {[1, 2].map((n) => (
+                    <div
+                      key={n}
+                      className="h-48 animate-pulse rounded-3xl border border-white/10 bg-slate-900/40"
+                    />
+                  ))}
+                </div>
+              ) : projects.length === 0 ? (
+                <div className="mt-6 rounded-3xl border border-white/10 bg-slate-900/40 p-10 text-center">
+                  <p className="text-sm text-slate-300">
+                    No projects saved yet. Use the form on the left to add your
+                    first project!
+                  </p>
+                </div>
+              ) : (
+                <div className="mt-6 space-y-6">
+                  {projects.map((project) => {
+                    const isEditing = editingId === project.id;
+
+                    return (
+                      <div
+                        key={project.id}
+                        className="overflow-hidden rounded-3xl border border-white/10 bg-slate-900/50 p-6 transition hover:border-white/20"
+                      >
+                        {isEditing ? (
+                          <form
+                            onSubmit={(e) => handleSaveEdit(e, project.id)}
+                            className="space-y-4"
+                          >
+                            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                              <span className="text-xs font-bold tracking-wider text-cyan-400 uppercase">
+                                Editing Project
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setEditingId(null)}
+                                className="text-xs text-slate-400 hover:text-white"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              <div>
+                                <label className="block text-[11px] font-bold text-slate-300 uppercase">
+                                  Title
+                                </label>
+                                <input
+                                  type="text"
+                                  required
+                                  value={editTitle}
+                                  onChange={(e) => setEditTitle(e.target.value)}
+                                  className="mt-1 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-2 text-sm text-white"
+                                />
+                              </div>
+                              <div>
+                                <label className="block text-[11px] font-bold text-slate-300 uppercase">
+                                  Location
+                                </label>
+                                <input
+                                  type="text"
+                                  value={editLocation}
+                                  onChange={(e) =>
+                                    setEditLocation(e.target.value)
+                                  }
+                                  className="mt-1 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-2 text-sm text-white"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid gap-4 sm:grid-cols-2">
+                              <div>
+                                <label className="block text-[11px] font-bold text-slate-300 uppercase">
+                                  Specialty
+                                </label>
+                                <select
+                                  value={editSpecialty}
+                                  onChange={(e) =>
+                                    setEditSpecialty(e.target.value)
+                                  }
+                                  className="mt-1 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-2 text-sm text-white"
+                                >
+                                  {services.map((s) => (
+                                    <option key={s.id} value={s.title}>
+                                      {s.title}
+                                    </option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="flex items-end">
+                                <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5 text-xs text-slate-200">
+                                  <input
+                                    type="checkbox"
+                                    checked={editFeatured}
+                                    onChange={(e) =>
+                                      setEditFeatured(e.target.checked)
+                                    }
+                                    className="accent-cyan-400"
+                                  />
+                                  Featured Project
+                                </label>
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-[11px] font-bold text-slate-300 uppercase">
+                                Description
+                              </label>
+                              <textarea
+                                rows={3}
+                                value={editDescription}
+                                onChange={(e) =>
+                                  setEditDescription(e.target.value)
+                                }
+                                className="mt-1 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-2 text-sm text-white"
+                              />
+                            </div>
+
+                            {/* Current Images Management */}
+                            <div>
+                              <label className="block text-[11px] font-bold text-slate-300 uppercase">
+                                Current Photos ({editKeptImages.length})
+                              </label>
+                              <div className="mt-2 flex flex-wrap gap-2.5">
+                                {editKeptImages.map((imgUrl, idx) => (
+                                  <div
+                                    key={`${imgUrl}-${idx}`}
+                                    className="relative h-16 w-24 overflow-hidden rounded-lg border border-white/15"
+                                  >
+                                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                                    <img
+                                      src={imgUrl}
+                                      alt="Project photo"
+                                      className="h-full w-full object-cover"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setEditKeptImages((prev) =>
+                                          prev.filter((_, i) => i !== idx)
+                                        )
+                                      }
+                                      className="absolute top-0.5 right-0.5 rounded bg-slate-950/90 px-1.5 py-0.5 text-[10px] font-bold text-rose-300 hover:bg-rose-600 hover:text-white"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+
+                            {/* Upload More Photos to this Project */}
+                            <div>
+                              <label className="block text-[11px] font-bold text-slate-300 uppercase">
+                                Upload Additional Photos
+                              </label>
+                              <input
+                                type="file"
+                                accept="image/*"
+                                multiple
+                                onChange={(e) => {
+                                  if (e.target.files) {
+                                    setEditNewFiles(Array.from(e.target.files));
+                                  }
+                                }}
+                                className="mt-1 block w-full text-xs text-slate-300 file:mr-3 file:rounded-full file:border-0 file:bg-cyan-400/20 file:px-4 file:py-1.5 file:text-xs file:font-bold file:text-cyan-300 hover:file:bg-cyan-400/30"
+                              />
+                            </div>
+
+                            <div className="flex justify-end gap-3 pt-2">
+                              <button
+                                type="button"
+                                onClick={() => setEditingId(null)}
+                                className="rounded-full border border-white/15 px-4 py-2 text-xs font-semibold text-slate-300"
+                              >
+                                Cancel
+                              </button>
+                              <button
+                                type="submit"
+                                disabled={savingEdit}
+                                className="rounded-full bg-cyan-400 px-5 py-2 text-xs font-bold text-slate-950 hover:bg-cyan-300 disabled:opacity-50"
+                              >
+                                {savingEdit ? "Saving..." : "Save Changes"}
+                              </button>
+                            </div>
+                          </form>
+                        ) : (
+                          <div>
+                            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                              <div>
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <span className="rounded-full bg-cyan-400/15 px-3 py-0.5 text-xs font-bold text-cyan-300">
+                                    {project.specialty}
+                                  </span>
+                                  {project.featured && (
+                                    <span className="rounded-full bg-amber-400/15 px-2.5 py-0.5 text-xs font-bold text-amber-300">
+                                      ★ Featured
+                                    </span>
+                                  )}
+                                  <span className="text-xs text-slate-400">
+                                    • {project.location}
+                                  </span>
+                                </div>
+                                <h3 className="mt-2 text-lg font-bold text-white">
+                                  {project.title}
+                                </h3>
+                                <p className="mt-1 text-sm text-slate-300">
+                                  {project.description}
+                                </p>
+                              </div>
+
+                              <div className="flex shrink-0 items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => startEditing(project)}
+                                  className="rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:border-cyan-400/50 hover:text-cyan-300"
+                                >
+                                  Edit / Add Photos
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleDeleteProject(
+                                      project.id,
+                                      project.title
+                                    )
+                                  }
+                                  className="rounded-full border border-rose-500/30 bg-rose-500/10 px-3.5 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+
+                            {/* Image Gallery Strip */}
+                            <div className="mt-5 flex gap-3 overflow-x-auto pb-1">
+                              {project.images.map((imgUrl, idx) => (
+                                <div
+                                  key={`${project.id}-img-${idx}`}
+                                  className="relative h-24 w-36 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-slate-950"
+                                >
+                                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                                  <img
+                                    src={imgUrl}
+                                    alt={`${project.title} photo ${idx + 1}`}
+                                    className="h-full w-full object-cover"
+                                  />
+                                  <span className="absolute bottom-1 left-1 rounded bg-slate-950/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-300">
+                                    #{idx + 1}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
           </div>
-
-          {/* Right Column: Existing Projects List */}
-          <div className="lg:col-span-7">
-            <h2 className="text-xl font-bold text-white">
-              Published Projects ({projects.length})
-            </h2>
-            <p className="mt-1 text-xs text-slate-400">
-              Edit details, upload additional photos to existing projects, or
-              remove outdated entries.
-            </p>
-
-            {loading ? (
-              <div className="mt-6 space-y-4">
-                {[1, 2].map((n) => (
-                  <div
-                    key={n}
-                    className="h-48 animate-pulse rounded-3xl border border-white/10 bg-slate-900/40"
-                  />
-                ))}
-              </div>
-            ) : projects.length === 0 ? (
-              <div className="mt-6 rounded-3xl border border-white/10 bg-slate-900/40 p-10 text-center">
-                <p className="text-sm text-slate-300">
-                  No projects saved yet. Use the form on the left to add your
-                  first project!
+        ) : (
+          /* ================= SERVICES & SPECIALTIES TAB ================= */
+          <div className="grid gap-12 lg:grid-cols-12">
+            {/* Left Column: Add New Service / Specialty */}
+            <div className="lg:col-span-5">
+              <form
+                onSubmit={handleCreateService}
+                className="sticky top-24 rounded-3xl border border-white/15 bg-slate-900/60 p-7 shadow-2xl"
+              >
+                <h2 className="text-xl font-bold text-white">
+                  Add Service / Specialty
+                </h2>
+                <p className="mt-1 text-xs text-slate-400">
+                  Add a new service to the public checklist, category cards, and
+                  consultation form.
                 </p>
-              </div>
-            ) : (
-              <div className="mt-6 space-y-6">
-                {projects.map((project) => {
-                  const isEditing = editingId === project.id;
+
+                <div className="mt-6 space-y-5">
+                  <div>
+                    <label
+                      htmlFor="srv-title"
+                      className="block text-xs font-bold tracking-wider text-slate-300 uppercase"
+                    >
+                      Specialty Name *
+                    </label>
+                    <input
+                      id="srv-title"
+                      type="text"
+                      required
+                      value={srvTitle}
+                      onChange={(e) => setSrvTitle(e.target.value)}
+                      placeholder="e.g., Outdoor Kitchens & Pergolas"
+                      className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none"
+                    />
+                  </div>
+
+                  <div className="grid gap-4 sm:grid-cols-3">
+                    <div className="sm:col-span-2">
+                      <label
+                        htmlFor="srv-category"
+                        className="block text-xs font-bold tracking-wider text-slate-300 uppercase"
+                      >
+                        Category Group
+                      </label>
+                      <select
+                        id="srv-category"
+                        value={srvCategory}
+                        onChange={(e) => setSrvCategory(e.target.value)}
+                        className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                      >
+                        {DEFAULT_CATEGORIES.map((cat) => (
+                          <option key={cat} value={cat}>
+                            {cat}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label
+                        htmlFor="srv-order"
+                        className="block text-xs font-bold tracking-wider text-slate-300 uppercase"
+                      >
+                        Display Order
+                      </label>
+                      <input
+                        id="srv-order"
+                        type="number"
+                        min={1}
+                        value={srvOrder}
+                        onChange={(e) => setSrvOrder(Number(e.target.value))}
+                        className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-3 text-sm text-white focus:border-cyan-400 focus:outline-none"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label
+                      htmlFor="srv-desc"
+                      className="block text-xs font-bold tracking-wider text-slate-300 uppercase"
+                    >
+                      Description
+                    </label>
+                    <textarea
+                      id="srv-desc"
+                      rows={3}
+                      value={srvDescription}
+                      onChange={(e) => setSrvDescription(e.target.value)}
+                      placeholder="Describe what is included in this service..."
+                      className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={submittingService}
+                    className="w-full rounded-full bg-gradient-to-r from-cyan-400 to-sky-500 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:brightness-110 disabled:opacity-50"
+                  >
+                    {submittingService
+                      ? "Saving Specialty..."
+                      : "Add Service / Specialty"}
+                  </button>
+                </div>
+              </form>
+            </div>
+
+            {/* Right Column: Existing Services & Specialties List */}
+            <div className="lg:col-span-7">
+              <h2 className="text-xl font-bold text-white">
+                Services &amp; Specialties ({services.length})
+              </h2>
+              <p className="mt-1 text-xs text-slate-400">
+                Manage the order, category, title, and description of every
+                specialty displayed on the website.
+              </p>
+
+              <div className="mt-6 space-y-4">
+                {services.map((srv, idx) => {
+                  const isEditingSrv = editingServiceId === srv.id;
 
                   return (
                     <div
-                      key={project.id}
-                      className="overflow-hidden rounded-3xl border border-white/10 bg-slate-900/50 p-6 transition hover:border-white/20"
+                      key={srv.id}
+                      className="rounded-2xl border border-white/10 bg-slate-900/50 p-5 transition hover:border-white/20"
                     >
-                      {isEditing ? (
+                      {isEditingSrv ? (
                         <form
-                          onSubmit={(e) => handleSaveEdit(e, project.id)}
+                          onSubmit={(e) => handleSaveServiceEdit(e, srv.id)}
                           className="space-y-4"
                         >
-                          <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                          <div className="flex items-center justify-between border-b border-white/10 pb-2">
                             <span className="text-xs font-bold tracking-wider text-cyan-400 uppercase">
-                              Editing Project
+                              Editing Specialty #{idx + 1}
                             </span>
                             <button
                               type="button"
-                              onClick={() => setEditingId(null)}
+                              onClick={() => setEditingServiceId(null)}
                               className="text-xs text-slate-400 hover:text-white"
                             >
                               Cancel
                             </button>
                           </div>
 
-                          <div className="grid gap-4 sm:grid-cols-2">
-                            <div>
+                          <div className="grid gap-4 sm:grid-cols-3">
+                            <div className="sm:col-span-2">
                               <label className="block text-[11px] font-bold text-slate-300 uppercase">
-                                Title
+                                Specialty Name
                               </label>
                               <input
                                 type="text"
                                 required
-                                value={editTitle}
-                                onChange={(e) => setEditTitle(e.target.value)}
+                                value={editSrvTitle}
+                                onChange={(e) =>
+                                  setEditSrvTitle(e.target.value)
+                                }
                                 className="mt-1 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-2 text-sm text-white"
                               />
                             </div>
+
                             <div>
                               <label className="block text-[11px] font-bold text-slate-300 uppercase">
-                                Location
+                                Display Order
                               </label>
                               <input
-                                type="text"
-                                value={editLocation}
+                                type="number"
+                                min={1}
+                                value={editSrvOrder}
                                 onChange={(e) =>
-                                  setEditLocation(e.target.value)
+                                  setEditSrvOrder(Number(e.target.value))
                                 }
                                 className="mt-1 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-2 text-sm text-white"
                               />
                             </div>
                           </div>
 
-                          <div className="grid gap-4 sm:grid-cols-2">
-                            <div>
-                              <label className="block text-[11px] font-bold text-slate-300 uppercase">
-                                Specialty
-                              </label>
-                              <select
-                                value={editSpecialty}
-                                onChange={(e) =>
-                                  setEditSpecialty(e.target.value)
-                                }
-                                className="mt-1 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-2 text-sm text-white"
-                              >
-                                {ALL_SPECIALTIES.map((s) => (
-                                  <option key={s} value={s}>
-                                    {s}
-                                  </option>
-                                ))}
-                              </select>
-                            </div>
-                            <div className="flex items-end">
-                              <label className="flex items-center gap-2 rounded-xl border border-white/10 bg-slate-950 px-3 py-2.5 text-xs text-slate-200">
-                                <input
-                                  type="checkbox"
-                                  checked={editFeatured}
-                                  onChange={(e) =>
-                                    setEditFeatured(e.target.checked)
-                                  }
-                                  className="accent-cyan-400"
-                                />
-                                Featured Project
-                              </label>
-                            </div>
+                          <div>
+                            <label className="block text-[11px] font-bold text-slate-300 uppercase">
+                              Category Group
+                            </label>
+                            <select
+                              value={editSrvCategory}
+                              onChange={(e) =>
+                                setEditSrvCategory(e.target.value)
+                              }
+                              className="mt-1 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-2 text-sm text-white"
+                            >
+                              {DEFAULT_CATEGORIES.map((cat) => (
+                                <option key={cat} value={cat}>
+                                  {cat}
+                                </option>
+                              ))}
+                            </select>
                           </div>
 
                           <div>
@@ -798,146 +1348,73 @@ export default function AdminProjectsPage() {
                               Description
                             </label>
                             <textarea
-                              rows={3}
-                              value={editDescription}
+                              rows={2}
+                              value={editSrvDescription}
                               onChange={(e) =>
-                                setEditDescription(e.target.value)
+                                setEditSrvDescription(e.target.value)
                               }
                               className="mt-1 w-full rounded-xl border border-white/15 bg-slate-950 px-3 py-2 text-sm text-white"
                             />
                           </div>
 
-                          {/* Current Images Management */}
-                          <div>
-                            <label className="block text-[11px] font-bold text-slate-300 uppercase">
-                              Current Photos ({editKeptImages.length})
-                            </label>
-                            <div className="mt-2 flex flex-wrap gap-2.5">
-                              {editKeptImages.map((imgUrl, idx) => (
-                                <div
-                                  key={`${imgUrl}-${idx}`}
-                                  className="relative h-16 w-24 overflow-hidden rounded-lg border border-white/15"
-                                >
-                                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                                  <img
-                                    src={imgUrl}
-                                    alt="Project photo"
-                                    className="h-full w-full object-cover"
-                                  />
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setEditKeptImages((prev) =>
-                                        prev.filter((_, i) => i !== idx)
-                                      )
-                                    }
-                                    className="absolute top-0.5 right-0.5 rounded bg-slate-950/90 px-1.5 py-0.5 text-[10px] font-bold text-rose-300 hover:bg-rose-600 hover:text-white"
-                                  >
-                                    ✕
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          </div>
-
-                          {/* Upload More Photos to this Project */}
-                          <div>
-                            <label className="block text-[11px] font-bold text-slate-300 uppercase">
-                              Upload Additional Photos
-                            </label>
-                            <input
-                              type="file"
-                              accept="image/*"
-                              multiple
-                              onChange={(e) => {
-                                if (e.target.files) {
-                                  setEditNewFiles(Array.from(e.target.files));
-                                }
-                              }}
-                              className="mt-1 block w-full text-xs text-slate-300 file:mr-3 file:rounded-full file:border-0 file:bg-cyan-400/20 file:px-4 file:py-1.5 file:text-xs file:font-bold file:text-cyan-300 hover:file:bg-cyan-400/30"
-                            />
-                          </div>
-
-                          <div className="flex justify-end gap-3 pt-2">
+                          <div className="flex justify-end gap-3 pt-1">
                             <button
                               type="button"
-                              onClick={() => setEditingId(null)}
-                              className="rounded-full border border-white/15 px-4 py-2 text-xs font-semibold text-slate-300"
+                              onClick={() => setEditingServiceId(null)}
+                              className="rounded-full border border-white/15 px-4 py-1.5 text-xs font-semibold text-slate-300"
                             >
                               Cancel
                             </button>
                             <button
                               type="submit"
-                              disabled={savingEdit}
-                              className="rounded-full bg-cyan-400 px-5 py-2 text-xs font-bold text-slate-950 hover:bg-cyan-300 disabled:opacity-50"
+                              disabled={savingServiceEdit}
+                              className="rounded-full bg-cyan-400 px-5 py-1.5 text-xs font-bold text-slate-950 hover:bg-cyan-300 disabled:opacity-50"
                             >
-                              {savingEdit ? "Saving..." : "Save Changes"}
+                              {savingServiceEdit ? "Saving..." : "Save Changes"}
                             </button>
                           </div>
                         </form>
                       ) : (
-                        <div>
-                          <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                        <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-start">
+                          <div className="flex items-start gap-3.5">
+                            <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-cyan-400/15 font-mono text-xs font-bold text-cyan-300">
+                              {String(srv.displayOrder || idx + 1).padStart(
+                                2,
+                                "0"
+                              )}
+                            </span>
                             <div>
                               <div className="flex flex-wrap items-center gap-2">
-                                <span className="rounded-full bg-cyan-400/15 px-3 py-0.5 text-xs font-bold text-cyan-300">
-                                  {project.specialty}
-                                </span>
-                                {project.featured && (
-                                  <span className="rounded-full bg-amber-400/15 px-2.5 py-0.5 text-xs font-bold text-amber-300">
-                                    ★ Featured
-                                  </span>
-                                )}
-                                <span className="text-xs text-slate-400">
-                                  • {project.location}
+                                <h3 className="text-base font-bold text-white uppercase">
+                                  {srv.title}
+                                </h3>
+                                <span className="rounded-full border border-white/10 bg-slate-950 px-2.5 py-0.5 text-[11px] font-medium text-cyan-300">
+                                  {srv.category}
                                 </span>
                               </div>
-                              <h3 className="mt-2 text-lg font-bold text-white">
-                                {project.title}
-                              </h3>
-                              <p className="mt-1 text-sm text-slate-300">
-                                {project.description}
+                              <p className="mt-1.5 text-sm text-slate-300">
+                                {srv.description}
                               </p>
-                            </div>
-
-                            <div className="flex shrink-0 items-center gap-2">
-                              <button
-                                type="button"
-                                onClick={() => startEditing(project)}
-                                className="rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:border-cyan-400/50 hover:text-cyan-300"
-                              >
-                                Edit / Add Photos
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  handleDeleteProject(project.id, project.title)
-                                }
-                                className="rounded-full border border-rose-500/30 bg-rose-500/10 px-3.5 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20"
-                              >
-                                Delete
-                              </button>
                             </div>
                           </div>
 
-                          {/* Image Gallery Strip */}
-                          <div className="mt-5 flex gap-3 overflow-x-auto pb-1">
-                            {project.images.map((imgUrl, idx) => (
-                              <div
-                                key={`${project.id}-img-${idx}`}
-                                className="relative h-24 w-36 shrink-0 overflow-hidden rounded-xl border border-white/10 bg-slate-950"
-                              >
-                                {/* eslint-disable-next-line @next/next/no-img-element */}
-                                <img
-                                  src={imgUrl}
-                                  alt={`${project.title} photo ${idx + 1}`}
-                                  className="h-full w-full object-cover"
-                                />
-                                <span className="absolute bottom-1 left-1 rounded bg-slate-950/80 px-1.5 py-0.5 font-mono text-[10px] text-slate-300">
-                                  #{idx + 1}
-                                </span>
-                              </div>
-                            ))}
+                          <div className="flex shrink-0 items-center gap-2">
+                            <button
+                              type="button"
+                              onClick={() => startEditingService(srv)}
+                              className="rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-white transition hover:border-cyan-400/50 hover:text-cyan-300"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                handleDeleteService(srv.id, srv.title)
+                              }
+                              className="rounded-full border border-rose-500/30 bg-rose-500/10 px-3.5 py-1.5 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20"
+                            >
+                              Delete
+                            </button>
                           </div>
                         </div>
                       )}
@@ -945,9 +1422,9 @@ export default function AdminProjectsPage() {
                   );
                 })}
               </div>
-            )}
+            </div>
           </div>
-        </div>
+        )}
       </main>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import type { ProjectItem } from "@/lib/projects-store";
+import { WatermarkedImage } from "@/components/WatermarkedImage";
 
 export function ProjectsShowcase() {
   const [projects, setProjects] = useState<ProjectItem[]>([]);
@@ -117,10 +118,10 @@ export function ProjectsShowcase() {
                   <div>
                     {/* Main Image Viewer */}
                     <div className="relative aspect-[16/10] w-full overflow-hidden bg-slate-950">
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
+                      <WatermarkedImage
                         src={currentImage}
                         alt={project.title}
+                        variant="hero"
                         className="h-full w-full object-cover transition duration-500 group-hover:scale-[1.02]"
                       />
                       <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-slate-950/80 to-transparent p-4">
@@ -155,10 +156,10 @@ export function ProjectsShowcase() {
                                 : "border-transparent opacity-60 hover:opacity-90"
                             }`}
                           >
-                            {/* eslint-disable-next-line @next/next/no-img-element */}
-                            <img
+                            <WatermarkedImage
                               src={imgUrl}
                               alt={`${project.title} thumbnail ${idx + 1}`}
+                              variant="thumbnail"
                               className="h-full w-full object-cover"
                             />
                           </button>

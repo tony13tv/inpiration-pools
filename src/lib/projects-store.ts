@@ -1,6 +1,7 @@
 import { promises as fs } from "fs";
 import path from "path";
 import { getSupabaseClient } from "./supabase";
+import { ensureSupabaseSchema } from "./supabase-schema";
 
 export interface ProjectItem {
   id: string;
@@ -91,6 +92,7 @@ async function ensureLocalStorage(): Promise<void> {
 export async function getProjects(): Promise<ProjectItem[]> {
   const supabase = getSupabaseClient();
   if (supabase) {
+    await ensureSupabaseSchema();
     const { data, error } = await supabase
       .from("projects")
       .select("*")
@@ -122,6 +124,7 @@ export async function createProjectRecord(
 ): Promise<ProjectItem[]> {
   const supabase = getSupabaseClient();
   if (supabase) {
+    await ensureSupabaseSchema();
     const { error } = await supabase.from("projects").insert({
       id: newProject.id,
       title: newProject.title,

@@ -110,18 +110,23 @@ export async function ensureSupabaseSchema(): Promise<{
     return { initialized: true };
   }
 
-  const connectionString =
+  const rawConnectionString =
     process.env.POSTGRES_URL_NON_POOLING || process.env.POSTGRES_URL || "";
 
-  if (!connectionString) {
+  if (!rawConnectionString) {
     return {
       initialized: false,
       error: "No POSTGRES_URL environment variable found.",
     };
   }
 
+  // Strip sslmode from URL so pg Pool honors ssl: { rejectUnauthorized: false }
+  const cleanedUrl = rawConnectionString
+    .replace(/[?&]sslmode=[^&]+/g, "")
+    .replace(/[?&]supa=[^&]+/g, "");
+
   const pool = new Pool({
-    connectionString,
+    connectionString: cleanedUrl,
     ssl: {
       rejectUnauthorized: false,
     },

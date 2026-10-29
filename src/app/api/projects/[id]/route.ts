@@ -5,11 +5,19 @@ import {
   deleteProjectRecord,
   saveUploadedFile,
 } from "@/lib/projects-store";
+import { isRequestAuthenticated } from "@/lib/admin-auth";
 
 export async function DELETE(
-  _request: NextRequest,
+  request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  if (!isRequestAuthenticated(request)) {
+    return NextResponse.json(
+      { error: "Unauthorized. Please sign in to the Admin Portal." },
+      { status: 401 }
+    );
+  }
+
   const { id } = await context.params;
   const result = await deleteProjectRecord(id);
 
@@ -24,6 +32,13 @@ export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ id: string }> }
 ) {
+  if (!isRequestAuthenticated(request)) {
+    return NextResponse.json(
+      { error: "Unauthorized. Please sign in to the Admin Portal." },
+      { status: 401 }
+    );
+  }
+
   try {
     const { id } = await context.params;
     const projects = await getProjects();

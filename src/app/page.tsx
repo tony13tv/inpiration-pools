@@ -210,15 +210,12 @@ export default function Home() {
             <a href="#checklist" className="transition hover:text-cyan-400">
               All 17 Specialties
             </a>
+            <a href="#process" className="transition hover:text-cyan-400">
+              How We Work
+            </a>
             <a href="#contact" className="transition hover:text-cyan-400">
               Contact Us
             </a>
-            <Link
-              href="/admin"
-              className="rounded-full border border-white/15 bg-white/5 px-3.5 py-1.5 text-xs font-semibold text-cyan-300 transition hover:border-cyan-400/50 hover:bg-white/10"
-            >
-              Admin
-            </Link>
           </nav>
 
           <div className="flex items-center gap-3">

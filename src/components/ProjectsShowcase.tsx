@@ -1,7 +1,6 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import type { ProjectItem } from "@/lib/projects-store";
 
 export function ProjectsShowcase() {
@@ -49,25 +48,17 @@ export function ProjectsShowcase() {
       className="border-b border-white/10 bg-slate-950 py-24"
     >
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
-        <div className="flex flex-col justify-between gap-6 sm:flex-row sm:items-end">
-          <div>
-            <p className="text-sm font-semibold tracking-widest text-cyan-400 uppercase">
-              Our Portfolio Gallery
-            </p>
-            <h2 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Featured Pool &amp; Construction Projects
-            </h2>
-            <p className="mt-3 max-w-2xl text-slate-400">
-              Explore recent pools, renovations, paver patios, fire pits, and
-              backyard transformations built across Metro Atlanta.
-            </p>
-          </div>
-          <Link
-            href="/admin"
-            className="inline-flex items-center gap-2 self-start rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 py-2 text-xs font-bold tracking-wider text-cyan-300 uppercase transition hover:bg-cyan-400/20 sm:self-auto"
-          >
-            <span>+ Manage Projects (Admin)</span>
-          </Link>
+        <div>
+          <p className="text-sm font-semibold tracking-widest text-cyan-400 uppercase">
+            Our Portfolio Gallery
+          </p>
+          <h2 className="mt-2 text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Featured Pool &amp; Construction Projects
+          </h2>
+          <p className="mt-3 max-w-2xl text-slate-400">
+            Explore recent pools, renovations, paver patios, fire pits, and
+            backyard transformations built across Metro Atlanta.
+          </p>
         </div>
 
         {/* Filter Pills */}
@@ -102,18 +93,12 @@ export function ProjectsShowcase() {
         ) : visibleProjects.length === 0 ? (
           <div className="mt-12 rounded-3xl border border-white/10 bg-slate-900/40 p-12 text-center">
             <p className="text-base font-semibold text-white">
-              No projects uploaded in this category yet.
+              New backyard projects coming soon.
             </p>
             <p className="mt-2 text-sm text-slate-400">
-              Use the Administration Portal to add new projects and upload
-              backyard photos.
+              Contact our team for a custom lookbook of recent builds in your
+              area.
             </p>
-            <Link
-              href="/admin"
-              className="mt-6 inline-block rounded-full bg-cyan-400 px-6 py-2.5 text-xs font-bold text-slate-950 uppercase"
-            >
-              Go to Admin Portal
-            </Link>
           </div>
         ) : (
           <div className="mt-12 grid gap-8 md:grid-cols-2">

@@ -26,6 +26,15 @@ const ALL_SPECIALTIES = [
 ];
 
 export default function AdminProjectsPage() {
+  // Authentication state
+  const [authChecking, setAuthChecking] = useState(true);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [loginUser, setLoginUser] = useState("");
+  const [loginPass, setLoginPass] = useState("");
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [loggingIn, setLoggingIn] = useState(false);
+
+  // Projects state
   const [projects, setProjects] = useState<ProjectItem[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -56,6 +65,24 @@ export default function AdminProjectsPage() {
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
+  async function checkSession() {
+    setAuthChecking(true);
+    try {
+      const res = await fetch("/api/admin/session", { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        setAuthenticated(Boolean(data.authenticated));
+        if (data.authenticated) {
+          await fetchProjects();
+        }
+      }
+    } catch {
+      setAuthenticated(false);
+    } finally {
+      setAuthChecking(false);
+    }
+  }
+
   async function fetchProjects() {
     setLoading(true);
     try {
@@ -75,7 +102,8 @@ export default function AdminProjectsPage() {
   }
 
   useEffect(() => {
-    fetchProjects();
+    checkSession();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Generate local object URLs for file previews
@@ -86,6 +114,44 @@ export default function AdminProjectsPage() {
       urls.forEach((url) => URL.revokeObjectURL(url));
     };
   }, [selectedFiles]);
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    setLoggingIn(true);
+    setLoginError(null);
+
+    try {
+      const res = await fetch("/api/admin/session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: loginUser,
+          password: loginPass,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setLoginError(data.error || "Invalid credentials.");
+        return;
+      }
+
+      setAuthenticated(true);
+      setLoginPass("");
+      await fetchProjects();
+    } catch {
+      setLoginError("Failed to sign in. Please try again.");
+    } finally {
+      setLoggingIn(false);
+    }
+  }
+
+  async function handleLogout() {
+    await fetch("/api/admin/session", { method: "DELETE" });
+    setAuthenticated(false);
+    setLoginUser("");
+    setLoginPass("");
+  }
 
   function handleFileSelect(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files) return;
@@ -127,6 +193,11 @@ export default function AdminProjectsPage() {
         body: formData,
       });
 
+      if (res.status === 401) {
+        setAuthenticated(false);
+        return;
+      }
+
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Failed to create project.");
@@ -165,6 +236,10 @@ export default function AdminProjectsPage() {
       const res = await fetch(`/api/projects/${id}`, {
         method: "DELETE",
       });
+      if (res.status === 401) {
+        setAuthenticated(false);
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setProjects(data.projects);
@@ -215,6 +290,11 @@ export default function AdminProjectsPage() {
         body: formData,
       });
 
+      if (res.status === 401) {
+        setAuthenticated(false);
+        return;
+      }
+
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || "Failed to update project.");
@@ -235,6 +315,112 @@ export default function AdminProjectsPage() {
     } finally {
       setSavingEdit(false);
     }
+  }
+
+  if (authChecking) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 text-slate-300">
+        <div className="text-center">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-cyan-400 border-t-transparent" />
+          <p className="mt-3 text-xs font-semibold tracking-wider text-slate-400 uppercase">
+            Verifying Session...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authenticated) {
+    return (
+      <div className="flex min-h-screen flex-col justify-between bg-slate-950 px-6 py-12 text-slate-100">
+        <div className="mx-auto w-full max-w-md pt-8">
+          <div className="text-center">
+            <Link href="/" className="inline-block">
+              <BrandLogo variant="compact" />
+            </Link>
+            <h1 className="mt-8 text-2xl font-extrabold tracking-tight text-white">
+              Admin Portal Sign In
+            </h1>
+            <p className="mt-2 text-xs text-slate-400">
+              Authorized access for ATL Inspiration Pools &amp; Construction
+              Inc.
+            </p>
+          </div>
+
+          <form
+            onSubmit={handleLogin}
+            className="mt-8 rounded-3xl border border-white/15 bg-slate-900/70 p-8 shadow-2xl"
+          >
+            {loginError && (
+              <div className="mb-6 rounded-xl border border-rose-400/40 bg-rose-500/10 px-4 py-3 text-xs font-semibold text-rose-200">
+                {loginError}
+              </div>
+            )}
+
+            <div className="space-y-5">
+              <div>
+                <label
+                  htmlFor="admin-username"
+                  className="block text-xs font-bold tracking-wider text-slate-300 uppercase"
+                >
+                  Username
+                </label>
+                <input
+                  id="admin-username"
+                  type="text"
+                  required
+                  autoComplete="username"
+                  value={loginUser}
+                  onChange={(e) => setLoginUser(e.target.value)}
+                  placeholder="admin"
+                  className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label
+                  htmlFor="admin-password"
+                  className="block text-xs font-bold tracking-wider text-slate-300 uppercase"
+                >
+                  Password
+                </label>
+                <input
+                  id="admin-password"
+                  type="password"
+                  required
+                  autoComplete="current-password"
+                  value={loginPass}
+                  onChange={(e) => setLoginPass(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="mt-2 w-full rounded-xl border border-white/15 bg-slate-950 px-4 py-3 text-sm text-white placeholder-slate-500 focus:border-cyan-400 focus:outline-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loggingIn}
+                className="w-full rounded-full bg-gradient-to-r from-cyan-400 to-sky-500 py-3.5 text-sm font-bold text-slate-950 shadow-lg shadow-cyan-500/20 transition hover:brightness-110 disabled:opacity-50"
+              >
+                {loggingIn ? "Signing In..." : "Sign In to Admin Portal"}
+              </button>
+            </div>
+          </form>
+
+          <div className="mt-6 text-center">
+            <Link
+              href="/"
+              className="text-xs font-semibold text-slate-400 hover:text-cyan-300"
+            >
+              &larr; Return to Public Website
+            </Link>
+          </div>
+        </div>
+
+        <p className="text-center text-[11px] text-slate-600">
+          &copy; 2026 ATL Inspiration Pools &amp; Construction Inc.
+        </p>
+      </div>
+    );
   }
 
   return (
@@ -258,6 +444,13 @@ export default function AdminProjectsPage() {
             >
               &larr; View Live Site Gallery
             </Link>
+            <button
+              type="button"
+              onClick={handleLogout}
+              className="rounded-full border border-rose-500/30 bg-rose-500/10 px-4 py-2 text-xs font-semibold text-rose-300 transition hover:bg-rose-500/20"
+            >
+              Sign Out
+            </button>
           </div>
         </div>
       </header>
@@ -412,7 +605,7 @@ export default function AdminProjectsPage() {
                     />
                     <label
                       htmlFor="proj-images"
-                      className="cursor-pointer flex flex-col items-center"
+                      className="flex cursor-pointer flex-col items-center"
                     >
                       <span className="flex h-11 w-11 items-center justify-center rounded-full bg-cyan-400/15 text-xl font-bold text-cyan-300">
                         +

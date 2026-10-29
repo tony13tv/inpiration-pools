@@ -6,6 +6,7 @@ import {
   ProjectItem,
 } from "@/lib/projects-store";
 import { isSupabaseConfigured } from "@/lib/supabase";
+import { isRequestAuthenticated } from "@/lib/admin-auth";
 
 export async function GET() {
   const projects = await getProjects();
@@ -16,6 +17,13 @@ export async function GET() {
 }
 
 export async function POST(request: NextRequest) {
+  if (!isRequestAuthenticated(request)) {
+    return NextResponse.json(
+      { error: "Unauthorized. Please sign in to the Admin Portal." },
+      { status: 401 }
+    );
+  }
+
   try {
     const formData = await request.formData();
 
